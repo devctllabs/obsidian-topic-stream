@@ -1,0 +1,9 @@
+DROP TABLE model_transition_jobs;
+DROP TABLE retrieval_rebuild_cohort;
+DROP TABLE retrieval_rebuild_progress;
+DROP TABLE retrieval_rebuilds;
+DROP TABLE workspace_model_progress;
+DROP TABLE retrieval_projection_pending;
+DROP TABLE item_projection_state;
+DROP TABLE workspace_retrieval_state;
+DROP TABLE embedding_model_collections;

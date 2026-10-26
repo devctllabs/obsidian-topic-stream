@@ -1,0 +1,95 @@
+name: Prepare plugin release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Explicit stable plugin version increment
+        type: choice
+        options: [patch, minor, major]
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-plugin
+  cancel-in-progress: false
+
+jobs:
+  version:
+    uses: ./.github/workflows/release-version.yml
+    with:
+      component: plugin
+      bump: ${{ inputs.bump }}
+      source_sha: ${{ github.sha }}
+
+  prepare:
+    name: Prepare reviewed plugin metadata
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ needs.version.outputs.source_sha }}
+      VERSION: ${{ needs.version.outputs.version }}
+      BASELINE: ${{ needs.version.outputs.baseline }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Plan plugin preparation
+        id: plan
+        run: python3 .github/scripts/prepare_plugin_release.py --version "$VERSION" --baseline "$BASELINE" --sha "$SOURCE_SHA" --base-branch "$DEFAULT_BRANCH" --body-output .artifacts/release/prepare-body.md --github-output "$GITHUB_OUTPUT"
+      - name: Require an unused preparation branch and PR
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          PREP_BRANCH: ${{ steps.plan.outputs.branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-remote origin "refs/heads/$PREP_BRANCH")"
+          test "$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$PREP_BRANCH" --json number --jq 'length')" = 0
+      - name: Create the metadata branch
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          PREP_BRANCH: ${{ steps.plan.outputs.branch }}
+          PR_TITLE: ${{ steps.plan.outputs.title }}
+        run: |
+          python3 .github/scripts/prepare_plugin_release.py --version "$VERSION" --baseline "$BASELINE" --sha "$SOURCE_SHA" --base-branch "$DEFAULT_BRANCH" --body-output .artifacts/release/prepare-body.md --apply
+          git switch -c "$PREP_BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- plugin/package.json plugin/manifest.json plugin/versions.json
+          git commit -m "$PR_TITLE"
+          git push origin "HEAD:refs/heads/$PREP_BRANCH"
+      - name: Create the reviewable PR
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          PREP_BRANCH: ${{ steps.plan.outputs.branch }}
+          PR_TITLE: ${{ steps.plan.outputs.title }}
+        run: gh pr create --repo "$GITHUB_REPOSITORY" --head "$PREP_BRANCH" --base "$DEFAULT_BRANCH" --title "$PR_TITLE" --body-file .artifacts/release/prepare-body.md
+      - name: Explicitly dispatch CI for the prepared source
+        env:
+          CHANGED: ${{ steps.plan.outputs.changed }}
+          PREP_BRANCH: ${{ steps.plan.outputs.branch }}
+        run: |
+          if [ "$CHANGED" != true ]; then
+            CI_REF="$DEFAULT_BRANCH"
+            CI_SHA="$SOURCE_SHA"
+            printf 'Plugin %s is already prepared at %s; no PR was needed.\n' "$VERSION" "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          else
+            CI_REF="$PREP_BRANCH"
+            CI_SHA=$(git rev-parse HEAD)
+            REMOTE_SHA=$(git ls-remote origin "refs/heads/$PREP_BRANCH" | cut -f1)
+            test "$REMOTE_SHA" = "$CI_SHA"
+            printf 'Plugin %s preparation uses branch %s at %s.\n' "$VERSION" "$CI_REF" "$CI_SHA" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$CI_REF" -f source_sha="$CI_SHA" -f component=plugin -f race=false

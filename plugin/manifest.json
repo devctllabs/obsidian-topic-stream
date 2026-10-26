@@ -1,0 +1,9 @@
+{
+  "id": "topic-stream",
+  "name": "Topic Stream",
+  "version": "0.1.0",
+  "minAppVersion": "1.8.0",
+  "description": "A calm, personalized feed and scheduled digests inside Obsidian.",
+  "author": "Topic Stream contributors",
+  "isDesktopOnly": false
+}

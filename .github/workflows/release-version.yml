@@ -1,0 +1,65 @@
+name: Calculate component version
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        type: string
+        required: true
+      bump:
+        type: string
+        required: true
+      source_sha:
+        type: string
+        required: true
+    outputs:
+      version:
+        value: ${{ jobs.version.outputs.version }}
+      tag:
+        value: ${{ jobs.version.outputs.tag }}
+      baseline:
+        value: ${{ jobs.version.outputs.baseline }}
+      source_sha:
+        value: ${{ jobs.version.outputs.source_sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Published component baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.calculate.outputs.version }}
+      tag: ${{ steps.calculate.outputs.tag }}
+      baseline: ${{ steps.calculate.outputs.baseline }}
+      source_sha: ${{ steps.calculate.outputs.source_sha }}
+    steps:
+      - name: Require the default-branch dispatch snapshot
+        env:
+          EVENT_REF: ${{ github.ref }}
+          DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          test "$EVENT_REF" = "$DEFAULT_REF"
+          test "$REQUESTED_SHA" = "$DISPATCH_SHA"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read release history once through the pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .artifacts/release
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > .artifacts/release/history.json
+      - name: Calculate the explicit component candidate
+        id: calculate
+        env:
+          COMPONENT: ${{ inputs.component }}
+          BUMP: ${{ inputs.bump }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: python3 .github/scripts/compute_release_version.py --component "$COMPONENT" --bump "$BUMP" --sha "$SOURCE_SHA" --history .artifacts/release/history.json --output .artifacts/release/version.json --github-output "$GITHUB_OUTPUT"

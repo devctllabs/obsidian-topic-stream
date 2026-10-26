@@ -1,0 +1,89 @@
+[tools]
+go = "1.27.3"
+golangci-lint = "2.15.0"
+actionlint = "1.7.12"
+"go:github.com/devctllabs/devctl/cmd/devctl" = "v0.0.0-20261021195616-4a6edd7e78a6"
+
+[tasks.lint]
+description = "Run Go static analysis"
+run = "golangci-lint run --build-tags=integration ./..."
+
+[tasks.up]
+description = "Start the published-image Compose stack"
+run = "docker compose up -d --wait"
+
+[tasks.down]
+description = "Stop the published-image Compose stack"
+run = "docker compose down"
+
+[tasks.deps-up]
+description = "Start PostgreSQL and Qdrant for host development"
+run = "docker compose -f compose.dev.yaml up -d --wait"
+
+[tasks.deps-down]
+description = "Stop host-development PostgreSQL and Qdrant"
+run = "docker compose -f compose.dev.yaml down"
+
+[tasks.migrate-up]
+description = "Apply embedded database migrations to the configured host database"
+run = "go run ./cmd/topic-stream db up"
+
+[tasks.start]
+description = "Start the backend on the host"
+run = "go run ./cmd/topic-stream serve"
+
+[tasks.codegen]
+description = "Validate and regenerate managed config and HTTP code"
+run = "devctl validate && devctl gen config && devctl gen http"
+
+[tasks.image-build]
+description = "Build the local topic-stream image"
+run = "docker build --tag topic-stream:local ."
+
+[tasks.test-integration]
+description = "Run primary integration and ordinary tests once, without race instrumentation"
+run = "go test -count=1 -tags=integration ./..."
+
+[tasks.test]
+description = "Run ordinary Go tests without external services"
+run = "go test -count=1 ./..."
+
+[tasks.test-race]
+description = "Run ordinary Go tests with the race detector"
+run = "go test -race -count=1 ./..."
+
+[tasks.test-integration-race]
+description = "Run the complete primary suite once with the race detector"
+run = "go test -race -count=1 -tags=integration ./..."
+
+[tasks.lint-optional]
+description = "Include local performance and live-provider test code in Go static analysis"
+run = "golangci-lint run --build-tags=integration,performance,live ./..."
+
+[tasks.lint-ci]
+description = "Validate GitHub workflow syntax and expressions"
+run = "actionlint"
+
+[tasks.test-tools]
+description = "Check local test tooling without Docker or a model provider"
+run = "python3 -m unittest discover -s tools/tests -v"
+
+[tasks.test-ci]
+description = "Check release scripts without GitHub access"
+run = "python3 -m unittest discover -s .github/scripts/tests -t .github/scripts -v"
+
+[tasks.test-performance]
+description = "Run one explicit local profile: append profile and runner arguments"
+run = "python3 tools/performance.py"
+
+[tasks.test-live-index]
+description = "Run bounded local provider indexing; append endpoint/model or --smoke"
+run = "python3 tools/performance.py live-index"
+
+[tasks.test-live-lifecycle]
+description = "Run bounded local provider recovery; append endpoint/model or --smoke"
+run = "python3 tools/performance.py live-lifecycle"
+
+[tasks.test-live-summary]
+description = "Run local Summary provider checks; append endpoint/model or --smoke"
+run = "python3 tools/performance.py live-summary"

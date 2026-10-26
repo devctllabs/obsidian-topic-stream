@@ -1,0 +1,3011 @@
+openapi: 3.1.0
+info:
+  title: Topic Stream API
+  version: 0.1.0
+  description: Local API for the Topic Stream daemon and Obsidian plugin.
+servers:
+  - url: http://127.0.0.1:7331
+security: []
+tags:
+  - name: System
+    description: Daemon readiness and invalidation events.
+  - name: Settings
+    description: Non-secret workspace behavior and personal preference guidance.
+  - name: Admin
+    description: Trusted local administration of server-managed resources.
+  - name: Sources
+    description: External content source configuration and synchronization.
+  - name: Topics
+    description: User-defined natural-language topic gates.
+  - name: Items
+    description: Canonical content and personal item state.
+  - name: Feed
+    description: Personalized feed and hybrid search.
+  - name: Digests
+    description: Scheduled definitions and immutable generated issues.
+  - name: Jobs
+    description: Background work diagnostics and retries.
+  - name: Portability
+    description: Workspace export and import.
+paths:
+  /api/v1/system/status:
+    get:
+      operationId: getSystemStatus
+      tags:
+        - System
+      summary: Inspect daemon readiness
+      responses:
+        '200':
+          description: Current daemon and dependency status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/events:
+    get:
+      operationId: streamEvents
+      tags:
+        - System
+      summary: Stream advisory invalidation events
+      responses:
+        '200':
+          description: Server-sent event stream; clients must recover by refetching HTTP resources
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/admin/embedding-models:
+    get:
+      operationId: listEmbeddingModels
+      tags:
+        - Admin
+      summary: List registered embedding models
+      responses:
+        '200':
+          description: Registered embedding models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModelList'
+        default:
+          $ref: '#/components/responses/problem'
+    post:
+      operationId: createEmbeddingModel
+      tags:
+        - Admin
+      summary: Register and initialize an embedding model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingModelCreate'
+      responses:
+        '201':
+          description: Registered model, including a failed initialization state when initialization could not complete
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModel'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/admin/embedding-models/{modelId}:
+    parameters:
+      - $ref: '#/components/parameters/model-id'
+    get:
+      operationId: getEmbeddingModel
+      tags:
+        - Admin
+      summary: Get an embedding model
+      responses:
+        '200':
+          description: Registered embedding model
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModel'
+        default:
+          $ref: '#/components/responses/problem'
+    put:
+      operationId: updateEmbeddingModel
+      tags:
+        - Admin
+      summary: Update mutable embedding model fields
+      parameters:
+        - $ref: '#/components/parameters/if-match-version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingModelUpdate'
+      responses:
+        '200':
+          description: Updated embedding model
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModel'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/admin/embedding-models/{modelId}/initialize:
+    parameters:
+      - $ref: '#/components/parameters/model-id'
+    post:
+      operationId: initializeEmbeddingModel
+      tags:
+        - Admin
+      summary: Retry embedding model initialization
+      responses:
+        '200':
+          description: Embedding model after the initialization attempt
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModel'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/embedding-model-options:
+    get:
+      operationId: listEmbeddingModelOptions
+      tags:
+        - Settings
+      summary: List embedding models visible to workspace settings
+      responses:
+        '200':
+          description: Selectable models and current desired or serving models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingModelOptionList'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/retrieval-status:
+    get:
+      operationId: getRetrievalStatus
+      tags:
+        - Settings
+      summary: Inspect desired, serving, and transition retrieval state
+      responses:
+        '200':
+          description: Current workspace retrieval state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrievalStatus'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/workspace-settings:
+    get:
+      operationId: getWorkspaceSettings
+      tags:
+        - Settings
+      summary: Read non-secret workspace settings
+      responses:
+        '200':
+          description: Current workspace settings
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSettings'
+        default:
+          $ref: '#/components/responses/problem'
+    patch:
+      operationId: updateWorkspaceSettings
+      tags:
+        - Settings
+      summary: Update non-secret workspace settings
+      parameters:
+        - $ref: '#/components/parameters/if-match-version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceSettingsPatch'
+      responses:
+        '200':
+          description: Updated workspace settings
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSettings'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/preference-profile:
+    get:
+      operationId: getPreferenceProfile
+      tags:
+        - Settings
+      summary: Read current preference guidance
+      responses:
+        '200':
+          description: Current preference profile
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenceProfile'
+        default:
+          $ref: '#/components/responses/problem'
+    patch:
+      operationId: updatePreferenceProfile
+      tags:
+        - Settings
+      summary: Update preference guidance
+      parameters:
+        - $ref: '#/components/parameters/if-match-version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenceProfilePatch'
+      responses:
+        '200':
+          description: Updated preference profile
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenceProfile'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/sources:
+    get:
+      operationId: listSources
+      tags:
+        - Sources
+      responses:
+        '200':
+          description: Configured sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceList'
+        default:
+          $ref: '#/components/responses/problem'
+    post:
+      operationId: createSource
+      tags:
+        - Sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceInput'
+      responses:
+        '201':
+          description: Source created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/sources/sync:
+    post:
+      operationId: syncAllSources
+      tags:
+        - Sources
+      responses:
+        '202':
+          description: Synchronization job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/sources/{sourceId}:
+    parameters:
+      - $ref: '#/components/parameters/source-id'
+    get:
+      operationId: getSource
+      tags:
+        - Sources
+      responses:
+        '200':
+          description: Source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        default:
+          $ref: '#/components/responses/problem'
+    patch:
+      operationId: updateSource
+      tags:
+        - Sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourcePatch'
+      responses:
+        '200':
+          description: Updated source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        default:
+          $ref: '#/components/responses/problem'
+    delete:
+      operationId: deleteSource
+      tags:
+        - Sources
+      responses:
+        '204':
+          description: Source deleted
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/sources/{sourceId}/sync:
+    parameters:
+      - $ref: '#/components/parameters/source-id'
+    post:
+      operationId: syncSource
+      tags:
+        - Sources
+      responses:
+        '202':
+          description: Synchronization job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/topics:
+    get:
+      operationId: listTopics
+      tags:
+        - Topics
+      responses:
+        '200':
+          description: Configured topics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicList'
+        default:
+          $ref: '#/components/responses/problem'
+    post:
+      operationId: createTopic
+      tags:
+        - Topics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicInput'
+      responses:
+        '201':
+          description: Topic created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/topics/{topicId}:
+    parameters:
+      - $ref: '#/components/parameters/topic-id'
+    patch:
+      operationId: updateTopic
+      tags:
+        - Topics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicPatch'
+      responses:
+        '200':
+          description: Updated topic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+        default:
+          $ref: '#/components/responses/problem'
+    delete:
+      operationId: deleteTopic
+      tags:
+        - Topics
+      responses:
+        '204':
+          description: Topic deleted
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/feed:
+    get:
+      operationId: getFeed
+      tags:
+        - Feed
+      summary: Read saved Feed publications without ranking or publishing
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: cursor
+          in: query
+          description: Opaque cursor for older items within the same snapshot
+          schema:
+            type: string
+        - name: snapshot
+          in: query
+          description: Snapshot token returned by the first page; omit it to read the latest saved head without publishing
+          schema:
+            type: string
+        - name: topicId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Saved Feed page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedPage'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/feed/refresh:
+    post:
+      operationId: refreshFeed
+      tags:
+        - Feed
+      summary: Publish a bounded batch from ready candidates and read the latest saved page
+      description: Does not wait for candidate preparation. Published Items never publish again in this Workspace. Automatic network retries are disabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedRefreshInput'
+      responses:
+        '200':
+          description: Latest saved Feed page, including when no new batch was published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedPage'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/search:
+    get:
+      operationId: searchItems
+      tags:
+        - Feed
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 1000
+            default: ''
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum:
+              - lexical
+              - semantic
+              - hybrid
+            default: hybrid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: topicId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sourceId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: publishedAfter
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: publishedBefore
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchPage'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    get:
+      operationId: getItem
+      tags:
+        - Items
+      responses:
+        '200':
+          description: Canonical item and personal state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/ai-summary:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    get:
+      operationId: getItemSummary
+      tags: [Items]
+      summary: Read AI annotation state without starting generation
+      parameters:
+        - name: sourceVersion
+          in: query
+          description: Read only the exact saved input version for Snapshot capture.
+          schema:
+            $ref: '#/components/schemas/SummarySourceVersion'
+      responses:
+        '200':
+          description: Input support, generation permission and existing annotation state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemSummary'
+        default:
+          $ref: '#/components/responses/problem'
+    post:
+      operationId: requestItemSummary
+      tags: [Items]
+      summary: Explicitly request asynchronous AI summary of current owned content
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemSummaryRequest'
+      responses:
+        '202':
+          description: Accepted active work or an already cached result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digest-issues/{issueId}/items/{itemId}/ai-summary:
+    parameters:
+      - $ref: '#/components/parameters/issue-id'
+      - $ref: '#/components/parameters/item-id'
+    post:
+      operationId: requestDigestItemSummary
+      tags: [Digests]
+      summary: Explicitly request AI summary of the exact saved Item snapshot
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemSummaryRequest'
+      responses:
+        '202':
+          description: Accepted shared work or an immutable ready annotation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/feedback:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    put:
+      operationId: setItemFeedback
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackInput'
+      responses:
+        '200':
+          description: Current feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '503':
+          $ref: '#/components/responses/projection-pending'
+        default:
+          $ref: '#/components/responses/problem'
+    delete:
+      operationId: clearItemFeedback
+      tags:
+        - Items
+      responses:
+        '204':
+          description: Feedback removed
+        '503':
+          $ref: '#/components/responses/projection-pending'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/reading-state:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    put:
+      operationId: setItemReadingState
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadingStateInput'
+      responses:
+        '204':
+          description: Reading state updated
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/visibility:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    put:
+      operationId: setItemVisibility
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisibilityInput'
+      responses:
+        '204':
+          description: Visibility updated
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/topic-corrections:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+    put:
+      operationId: setItemTopicCorrection
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicCorrectionInput'
+      responses:
+        '204':
+          description: Topic membership correction updated
+        '503':
+          $ref: '#/components/responses/projection-pending'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/items/{itemId}/images/{imageId}:
+    parameters:
+      - $ref: '#/components/parameters/item-id'
+      - $ref: '#/components/parameters/image-id'
+    get:
+      operationId: downloadItemImage
+      tags:
+        - Items
+      summary: Download an image already associated with an item
+      responses:
+        '200':
+          description: Validated image bytes
+          headers:
+            X-Content-Type-Options:
+              required: true
+              schema:
+                type: string
+                const: nosniff
+          content:
+            'image/*':
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digests:
+    get:
+      operationId: listDigests
+      tags:
+        - Digests
+      responses:
+        '200':
+          description: Digest definitions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestList'
+        default:
+          $ref: '#/components/responses/problem'
+    post:
+      operationId: createDigest
+      tags:
+        - Digests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigestInput'
+      responses:
+        '201':
+          description: Digest definition created
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestDefinition'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digests/{digestId}:
+    parameters:
+      - $ref: '#/components/parameters/digest-id'
+    patch:
+      operationId: updateDigest
+      tags:
+        - Digests
+      parameters:
+        - $ref: '#/components/parameters/if-match-version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigestPatch'
+      responses:
+        '200':
+          description: Digest definition updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/version-etag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestDefinition'
+        default:
+          $ref: '#/components/responses/problem'
+    delete:
+      operationId: deleteDigest
+      tags:
+        - Digests
+      parameters:
+        - $ref: '#/components/parameters/if-match-version'
+      responses:
+        '204':
+          description: Digest definition deleted
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digests/{digestId}/generate:
+    parameters:
+      - $ref: '#/components/parameters/digest-id'
+    post:
+      operationId: generateDigest
+      tags:
+        - Digests
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Permanent request identity scoped to this Workspace and Digest Definition.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Generation job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digest-issues:
+    get:
+      operationId: listDigestIssues
+      tags:
+        - Digests
+      parameters:
+        - name: digestId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of summaries per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          description: Opaque continuation bound to the current Digest filter.
+          schema:
+            type: string
+            maxLength: 2048
+      responses:
+        '200':
+          description: Digest Issue summaries ordered by generatedAt and id descending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestIssueList'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/digest-issues/{issueId}:
+    parameters:
+      - $ref: '#/components/parameters/issue-id'
+    get:
+      operationId: getDigestIssue
+      tags:
+        - Digests
+      responses:
+        '200':
+          description: Immutable digest issue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestIssue'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/jobs:
+    get:
+      operationId: listJobs
+      tags:
+        - Jobs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - queued
+              - running
+              - retry_wait
+              - succeeded
+              - dead
+              - cancelled
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Jobs ordered from newest to oldest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/job-id'
+    get:
+      operationId: getJob
+      tags:
+        - Jobs
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/jobs/{jobId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/job-id'
+    post:
+      operationId: retryJob
+      tags:
+        - Jobs
+      responses:
+        '202':
+          description: Replacement job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/jobs/{jobId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/job-id'
+    post:
+      operationId: cancelJob
+      tags:
+        - Jobs
+      summary: Request cancellation of a queued or running job
+      responses:
+        '202':
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/export:
+    get:
+      operationId: exportWorkspace
+      tags:
+        - Portability
+      responses:
+        '200':
+          description: Portable workspace configuration and personal state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportBundle'
+        default:
+          $ref: '#/components/responses/problem'
+  /api/v1/import:
+    post:
+      operationId: importWorkspace
+      tags:
+        - Portability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportBundle'
+      responses:
+        '202':
+          description: Import job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAccepted'
+        default:
+          $ref: '#/components/responses/problem'
+components:
+  schemas:
+    Problem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: Stable problem type identifier. `about:blank` is used only when the HTTP status fully describes the problem.
+        title:
+          type: string
+          description: Stable summary associated with the problem type.
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          description: Safe English explanation approved for display to the user. Never a raw internal error string.
+        instance:
+          type: string
+          format: uri-reference
+        code:
+          type: string
+          description: Stable snake_case application error code. Unexpected application failures use internal_error with HTTP 500; clients must not infer a code from title or detail.
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: Application field path, or the JSON pointer or parameter name supplied by OpenAPI validation.
+              message:
+                type: string
+                description: Safe English explanation of the violated constraint, without the submitted value.
+    ProjectionPendingProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - canonicalCommitted
+        - projectionRevision
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          const: urn:topic-stream:problem:projection-pending
+        title:
+          type: string
+          const: Retrieval projection pending
+        status:
+          type: integer
+          const: 503
+        detail:
+          type: string
+        code:
+          type: string
+          const: projection_pending
+        canonicalCommitted:
+          type: boolean
+          const: true
+        projectionRevision:
+          $ref: '#/components/schemas/UUID'
+    SystemStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - version
+        - workspaceId
+        - components
+        - now
+      properties:
+        status:
+          type: string
+          enum:
+            - ready
+            - degraded
+            - unavailable
+        version:
+          type: string
+        workspaceId:
+          $ref: '#/components/schemas/UUID'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentStatus'
+        now:
+          $ref: '#/components/schemas/Timestamp'
+    WorkspaceSettings:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - embeddingModelId
+        - generation
+        - summary
+        - instructions
+        - retention
+        - retrieval
+        - updatedAt
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        embeddingModelId:
+          $ref: '#/components/schemas/UUID'
+        generation:
+          $ref: '#/components/schemas/GenerationSettings'
+        summary:
+          $ref: '#/components/schemas/SummarySettings'
+        instructions:
+          $ref: '#/components/schemas/TaskInstructions'
+        retention:
+          $ref: '#/components/schemas/RetentionSettings'
+        retrieval:
+          $ref: '#/components/schemas/RetrievalSettings'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    WorkspaceSettingsPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        embeddingModelId:
+          $ref: '#/components/schemas/UUID'
+        generation:
+          $ref: '#/components/schemas/GenerationSettings'
+        summary:
+          $ref: '#/components/schemas/SummarySettings'
+        instructions:
+          $ref: '#/components/schemas/TaskInstructions'
+        retention:
+          $ref: '#/components/schemas/RetentionSettings'
+        retrieval:
+          $ref: '#/components/schemas/RetrievalSettings'
+    EmbeddingModelDescriptor:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - endpoint
+        - providerModel
+        - dimensions
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        endpoint:
+          type: string
+          format: uri
+        providerModel:
+          type: string
+          minLength: 1
+        dimensions:
+          type: integer
+          minimum: 1
+          maximum: 65536
+    EmbeddingModelCreate:
+      $ref: '#/components/schemas/EmbeddingModelDescriptor'
+    EmbeddingModelUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - endpoint
+        - enabled
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        endpoint:
+          type: string
+          format: uri
+        enabled:
+          type: boolean
+    EmbeddingModel:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - endpoint
+        - providerModel
+        - dimensions
+        - enabled
+        - initializationStatus
+        - failureReason
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        providerModel:
+          type: string
+        dimensions:
+          type: integer
+          minimum: 1
+          maximum: 65536
+        enabled:
+          type: boolean
+        initializationStatus:
+          type: string
+          enum:
+            - initializing
+            - ready
+            - failed
+        failureReason:
+          type:
+            - string
+            - 'null'
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    EmbeddingModelList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbeddingModel'
+    EmbeddingModelOption:
+      type: object
+      additionalProperties: false
+      required:
+        - model
+        - selectable
+      properties:
+        model:
+          $ref: '#/components/schemas/EmbeddingModel'
+        selectable:
+          type: boolean
+    EmbeddingModelOptionList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbeddingModelOption'
+    RetrievalStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - desiredModelId
+        - servingModelId
+        - transitionJobId
+      properties:
+        latestTransition:
+          $ref: '#/components/schemas/ModelTransition'
+        desiredModelId:
+          $ref: '#/components/schemas/UUID'
+        servingModelId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        transitionJobId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+    ModelTransition:
+      type: object
+      additionalProperties: false
+      description: Verified model-selection operation. Waiting has no admitted Job; retry eligibility is rechecked atomically on admission.
+      required: [modelId, selectionGeneration, jobId, status, isCurrent, canRetry]
+      properties:
+        modelId:
+          $ref: '#/components/schemas/UUID'
+        selectionGeneration:
+          type: integer
+          format: int64
+          minimum: 0
+        jobId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        status:
+          type: string
+          enum: [waiting, queued, running, retry_wait, succeeded, dead, cancelled]
+        isCurrent:
+          type: boolean
+        canRetry:
+          type: boolean
+    GenerationSettings:
+      type: object
+      additionalProperties: false
+      required:
+        - enabled
+        - endpoint
+        - summaryModel
+        - rerankModel
+      properties:
+        enabled:
+          type: boolean
+        endpoint:
+          oneOf:
+            - type: string
+              format: uri
+            - type: 'null'
+        summaryModel:
+          type:
+            - string
+            - 'null'
+        rerankModel:
+          type:
+            - string
+            - 'null'
+    SummarySettings:
+      type: object
+      additionalProperties: false
+      required:
+        - language
+        - maxInputChars
+        - maxSummaryCharacters
+      properties:
+        language:
+          type: string
+          minLength: 1
+        maxInputChars:
+          type: integer
+          minimum: 1000
+          maximum: 1000000
+        maxSummaryCharacters:
+          type: integer
+          minimum: 200
+          maximum: 4000
+    TaskInstructions:
+      type: object
+      additionalProperties: false
+      required:
+        - summaryChunk
+        - summaryReduce
+        - summaryFinal
+        - digestRerank
+      properties:
+        summaryChunk:
+          type: string
+          minLength: 1
+          maxLength: 12000
+        summaryReduce:
+          type: string
+          minLength: 1
+          maxLength: 12000
+        summaryFinal:
+          type: string
+          minLength: 1
+          maxLength: 12000
+        digestRerank:
+          type: string
+          minLength: 1
+          maxLength: 12000
+    RetentionSettings:
+      type: object
+      additionalProperties: false
+      required:
+        - fullContentDays
+      properties:
+        fullContentDays:
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+    RetrievalSettings:
+      type: object
+      additionalProperties: false
+      required:
+        - candidateLimit
+        - rerankLimit
+        - rrfK
+        - recencyHalfLifeDays
+        - recencyMaxBoost
+        - feedSourceCap
+        - digestSourceCap
+        - digestMmrLambda
+        - llmRerankEnabled
+        - digestExplorationEnabled
+      properties:
+        candidateLimit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        rerankLimit:
+          type: integer
+          minimum: 1
+          maximum: 2000
+        rrfK:
+          type: integer
+          minimum: 1
+        recencyHalfLifeDays:
+          type: number
+          exclusiveMinimum: 0
+        recencyMaxBoost:
+          type: number
+          minimum: 0
+          maximum: 1
+        feedSourceCap:
+          type: integer
+          minimum: 1
+        digestSourceCap:
+          type: integer
+          minimum: 1
+        digestMmrLambda:
+          type: number
+          minimum: 0
+          maximum: 1
+        llmRerankEnabled:
+          type: boolean
+        digestExplorationEnabled:
+          type: boolean
+    PreferenceProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - prefer
+        - avoid
+        - revision
+        - version
+        - updatedAt
+      properties:
+        prefer:
+          type: string
+          maxLength: 12000
+        avoid:
+          type: string
+          maxLength: 12000
+        revision:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    PreferenceProfilePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        prefer:
+          type: string
+          maxLength: 12000
+        avoid:
+          type: string
+          maxLength: 12000
+    Source:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - config
+        - enabled
+        - pollIntervalMinutes
+        - lastSyncedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        config:
+          $ref: '#/components/schemas/SourceConfig'
+        enabled:
+          type: boolean
+        pollIntervalMinutes:
+          type: integer
+          minimum: 15
+          maximum: 10080
+        lastSyncedAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    Topic:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - sourceIds
+        - itemKinds
+        - include
+        - exclude
+        - mode
+        - enabled
+        - revision
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        sourceIds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/UUID'
+        itemKinds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ItemKind'
+        include:
+          type: string
+          maxLength: 4000
+        exclude:
+          type: string
+          maxLength: 4000
+        mode:
+          $ref: '#/components/schemas/TopicMode'
+        enabled:
+          type: boolean
+        revision:
+          type: integer
+          minimum: 1
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    Item:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - sourceIds
+        - kind
+        - details
+        - title
+        - url
+        - canonicalUrl
+        - excerpt
+        - contentMarkdown
+        - contentOrigin
+        - summarySupported
+        - summarySourceVersion
+        - authors
+        - publishedAt
+        - discoveredAt
+        - topicIds
+        - readingState
+        - visibility
+        - feedback
+        - images
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        sourceIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/UUID'
+        kind:
+          $ref: '#/components/schemas/ItemKind'
+        details:
+          $ref: '#/components/schemas/ItemDetails'
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        canonicalUrl:
+          type: string
+          format: uri
+        excerpt:
+          type: string
+        contentMarkdown:
+          type: string
+        contentOrigin:
+          $ref: '#/components/schemas/ContentOrigin'
+        summarySupported:
+          type: boolean
+          description: Only proven article body or README has an available generation control.
+        summarySourceVersion:
+          $ref: '#/components/schemas/SummarySourceVersion'
+        authors:
+          type: array
+          items:
+            type: string
+        publishedAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        discoveredAt:
+          $ref: '#/components/schemas/Timestamp'
+        topicIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+        readingState:
+          $ref: '#/components/schemas/ReadingState'
+        visibility:
+          $ref: '#/components/schemas/ItemVisibility'
+        feedback:
+          oneOf:
+            - $ref: '#/components/schemas/Feedback'
+            - type: 'null'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemImage'
+    ItemImage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - url
+        - altText
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        url:
+          type: string
+          format: uri
+        altText:
+          type:
+            - string
+            - 'null'
+    FeedRefreshInput:
+      type: object
+      additionalProperties: false
+      properties:
+        topicId:
+          $ref: '#/components/schemas/UUID'
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+    FeedPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+        - snapshot
+        - generatedAt
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedEntry'
+        nextCursor:
+          type:
+            - string
+            - 'null'
+        snapshot:
+          type: string
+        generatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    DigestDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - topics
+        - timezone
+        - recurrence
+        - enabled
+        - version
+        - nextRunAt
+        - lastSuccessfulAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        topics:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DigestTopicInput'
+        timezone:
+          type: string
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+        nextRunAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        lastSuccessfulAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    ContentOrigin:
+      type: string
+      enum: [unknown, article_body, article_description, paper_abstract, video_description, repository_readme, repository_description, empty]
+    SummarySourceVersion:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      minLength: 64
+      maxLength: 64
+    ItemSummaryRequest:
+      type: object
+      additionalProperties: false
+      description: Text and URLs are resolved from owned server content only.
+    ItemSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - sourceVersion
+        - supported
+        - canGenerate
+        - unavailableReason
+        - state
+        - jobId
+        - failure
+        - retryable
+        - result
+      properties:
+        sourceVersion:
+          $ref: '#/components/schemas/SummarySourceVersion'
+        supported:
+          type: boolean
+        canGenerate:
+          type: boolean
+        unavailableReason:
+          oneOf:
+            - type: string
+              enum: [unsupported_input, generation_disabled, historical_input]
+            - type: 'null'
+        state:
+          type: string
+          enum: [not_requested, pending, ready, failed]
+        jobId:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        failure:
+          type: [string, 'null']
+        retryable:
+          type: boolean
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/AISummary'
+            - type: 'null'
+    AISummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - generationJobId
+        - sourceVersion
+        - text
+        - model
+        - language
+        - maxInputChars
+        - maxSummaryCharacters
+        - instructionsVersion
+        - algorithmVersion
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        generationJobId:
+          $ref: '#/components/schemas/UUID'
+        sourceVersion:
+          $ref: '#/components/schemas/SummarySourceVersion'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        model:
+          type: string
+        language:
+          type: string
+        maxInputChars:
+          type: integer
+        maxSummaryCharacters:
+          type: integer
+          minimum: 200
+          maximum: 4000
+        instructionsVersion:
+          type: string
+        algorithmVersion:
+          type: string
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+    DigestIssueSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - digestId
+        - generationJobId
+        - title
+        - status
+        - scheduledFor
+        - generatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        digestId:
+          $ref: '#/components/schemas/UUID'
+        generationJobId:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - complete
+            - degraded
+        scheduledFor:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        generatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    DigestIssue:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - digestId
+        - generationJobId
+        - title
+        - status
+        - scheduledFor
+        - generatedAt
+        - sections
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        digestId:
+          $ref: '#/components/schemas/UUID'
+        generationJobId:
+          $ref: '#/components/schemas/UUID'
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - complete
+            - degraded
+        scheduledFor:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        generatedAt:
+          $ref: '#/components/schemas/Timestamp'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigestSection'
+    Job:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - queue
+        - status
+        - attempt
+        - maxAttempts
+        - cancellationRequested
+        - createdAt
+        - updatedAt
+      properties:
+        modelTransition:
+          $ref: '#/components/schemas/ModelTransition'
+        progress:
+          $ref: '#/components/schemas/JobProgress'
+        id:
+          $ref: '#/components/schemas/UUID'
+        kind:
+          type: string
+        queue:
+          $ref: '#/components/schemas/JobQueue'
+        status:
+          type: string
+          enum:
+            - queued
+            - running
+            - retry_wait
+            - succeeded
+            - dead
+            - cancelled
+        attempt:
+          type: integer
+          minimum: 0
+        maxAttempts:
+          type: integer
+          minimum: 1
+        cancellationRequested:
+          type: boolean
+        reason:
+          type:
+            - string
+            - 'null'
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        startedAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        finishedAt:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        durationMs:
+          type:
+            - integer
+            - 'null'
+          format: int64
+          minimum: 0
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    JobProgress:
+      type: object
+      additionalProperties: false
+      description: Fixed initial Item cohort progress. Equal counts do not imply successful catch-up or cutover; Job status remains authoritative.
+      required:
+        - phase
+        - processedItems
+        - totalItems
+        - updatedAt
+      properties:
+        phase:
+          type: string
+          enum: [preparing, indexing, catching_up, activating, completed]
+        processedItems:
+          type: integer
+          format: int64
+          minimum: 0
+        totalItems:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+          description: Fixed initial cohort size, unknown until preparation finishes. New Items do not increase this total.
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    JobQueue:
+      type: string
+      enum:
+        - fetch
+        - generation
+        - retrieval
+        - feed-preparation
+        - maintenance
+    UUID:
+      type: string
+      format: uuid
+    ComponentStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - ready
+            - degraded
+            - unavailable
+        detail:
+          type: string
+    Timestamp:
+      type: string
+      format: date-time
+    SourceConfig:
+      oneOf:
+        - $ref: '#/components/schemas/RssSourceConfig'
+        - $ref: '#/components/schemas/AtomSourceConfig'
+        - $ref: '#/components/schemas/ArxivSourceConfig'
+        - $ref: '#/components/schemas/GithubTrendingSourceConfig'
+        - $ref: '#/components/schemas/YoutubeSourceConfig'
+      discriminator:
+        propertyName: kind
+        mapping:
+          rss: '#/components/schemas/RssSourceConfig'
+          atom: '#/components/schemas/AtomSourceConfig'
+          arxiv: '#/components/schemas/ArxivSourceConfig'
+          github: '#/components/schemas/GithubTrendingSourceConfig'
+          youtube: '#/components/schemas/YoutubeSourceConfig'
+    RssSourceConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - url
+        - allowPrivateNetwork
+      properties:
+        kind:
+          type: string
+          const: rss
+        url:
+          type: string
+          format: uri
+        allowPrivateNetwork:
+          type: boolean
+          default: false
+    AtomSourceConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - url
+        - allowPrivateNetwork
+      properties:
+        kind:
+          type: string
+          const: atom
+        url:
+          type: string
+          format: uri
+        allowPrivateNetwork:
+          type: boolean
+          default: false
+    ArxivSourceConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - query
+      properties:
+        kind:
+          type: string
+          const: arxiv
+        query:
+          type: string
+          minLength: 1
+          maxLength: 500
+          examples:
+            - cat:cs.AI
+    GithubTrendingSourceConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - period
+        - language
+      properties:
+        kind:
+          type: string
+          const: github
+        period:
+          type: string
+          enum:
+            - daily
+            - weekly
+            - monthly
+        language:
+          type: string
+          enum:
+            - all
+            - python
+            - rust
+            - go
+            - javascript
+            - typescript
+    YoutubeSourceConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - channelId
+      properties:
+        kind:
+          type: string
+          const: youtube
+        channelId:
+          type: string
+          pattern: '^UC[A-Za-z0-9_-]{20,}$'
+    ItemKind:
+      type: string
+      enum:
+        - article
+        - paper
+        - video
+        - repository
+    ItemDetails:
+      oneOf:
+        - $ref: '#/components/schemas/ArticleDetails'
+        - $ref: '#/components/schemas/PaperDetails'
+        - $ref: '#/components/schemas/VideoDetails'
+        - $ref: '#/components/schemas/RepositoryDetails'
+      discriminator:
+        propertyName: type
+        mapping:
+          article: '#/components/schemas/ArticleDetails'
+          paper: '#/components/schemas/PaperDetails'
+          video: '#/components/schemas/VideoDetails'
+          repository: '#/components/schemas/RepositoryDetails'
+    ArticleDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          const: article
+        description:
+          type: string
+    PaperDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - abstract
+        - categories
+        - doi
+      properties:
+        type:
+          type: string
+          const: paper
+        abstract:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        doi:
+          type:
+            - string
+            - 'null'
+    VideoDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - description
+        - channelId
+        - videoId
+      properties:
+        type:
+          type: string
+          const: video
+        description:
+          type: string
+        channelId:
+          type: string
+        videoId:
+          type: string
+    RepositoryDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - description
+        - homepage
+        - programmingLanguage
+        - stars
+        - forks
+        - openIssues
+        - topics
+        - defaultBranch
+        - starsInPeriod
+        - rank
+        - period
+        - observedAt
+        - snapshotStatus
+      properties:
+        type:
+          type: string
+          const: repository
+        description:
+          type:
+            - string
+            - 'null'
+        homepage:
+          type:
+            - string
+            - 'null'
+        programmingLanguage:
+          type:
+            - string
+            - 'null'
+        stars:
+          type:
+            - integer
+            - 'null'
+          minimum: 0
+        forks:
+          type:
+            - integer
+            - 'null'
+          minimum: 0
+        openIssues:
+          type:
+            - integer
+            - 'null'
+          minimum: 0
+        topics:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        defaultBranch:
+          type:
+            - string
+            - 'null'
+        starsInPeriod:
+          type:
+            - integer
+            - 'null'
+          minimum: 0
+        rank:
+          type: integer
+          minimum: 1
+        period:
+          type: string
+          enum:
+            - daily
+            - weekly
+            - monthly
+        observedAt:
+          $ref: '#/components/schemas/Timestamp'
+        snapshotStatus:
+          type: string
+          enum:
+            - complete
+            - degraded
+    TopicMode:
+      type: string
+      enum:
+        - ordinary
+        - strict
+    TopicCorrectionPolicy:
+      type: string
+      description: Preserve current membership corrections by default, or clear the complete set explicitly.
+      enum:
+        - preserve
+        - clear
+    SourceList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+    SourceInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - config
+        - enabled
+        - pollIntervalMinutes
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        config:
+          $ref: '#/components/schemas/SourceConfig'
+        enabled:
+          type: boolean
+        pollIntervalMinutes:
+          type: integer
+          minimum: 15
+          maximum: 10080
+          default: 60
+    JobAccepted:
+      type: object
+      additionalProperties: false
+      required:
+        - jobId
+      properties:
+        jobId:
+          $ref: '#/components/schemas/UUID'
+    SourcePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        config:
+          $ref: '#/components/schemas/SourceConfig'
+        enabled:
+          type: boolean
+        pollIntervalMinutes:
+          type: integer
+          minimum: 15
+          maximum: 10080
+    TopicList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Topic'
+    TopicInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - sourceIds
+        - itemKinds
+        - include
+        - exclude
+        - mode
+        - enabled
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        sourceIds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/UUID'
+        itemKinds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ItemKind'
+        include:
+          type: string
+          maxLength: 4000
+        exclude:
+          type: string
+          maxLength: 4000
+        mode:
+          $ref: '#/components/schemas/TopicMode'
+        enabled:
+          type: boolean
+    TopicPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        sourceIds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/UUID'
+        itemKinds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ItemKind'
+        include:
+          type: string
+          maxLength: 4000
+        exclude:
+          type: string
+          maxLength: 4000
+        mode:
+          $ref: '#/components/schemas/TopicMode'
+        enabled:
+          type: boolean
+        correctionPolicy:
+          $ref: '#/components/schemas/TopicCorrectionPolicy'
+    ReadingState:
+      type: string
+      enum:
+        - unread
+        - read
+    ItemVisibility:
+      type: string
+      enum:
+        - visible
+        - hidden
+    Feedback:
+      type: object
+      additionalProperties: false
+      required:
+        - sentiment
+        - comment
+        - createdAt
+        - updatedAt
+      properties:
+        sentiment:
+          type: string
+          enum:
+            - like
+            - dislike
+        comment:
+          type:
+            - string
+            - 'null'
+          maxLength: 2000
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+    FeedExplanation:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - signals
+        - pipelineVersion
+      properties:
+        summary:
+          type: string
+        signals:
+          type: object
+          additionalProperties:
+            type: number
+        pipelineVersion:
+          type: string
+    FeedEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - item
+        - score
+        - explanation
+      properties:
+        item:
+          $ref: '#/components/schemas/Item'
+        score:
+          type: number
+        explanation:
+          $ref: '#/components/schemas/FeedExplanation'
+    SearchPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedEntry'
+        nextCursor:
+          type:
+            - string
+            - 'null'
+    FeedbackInput:
+      type: object
+      additionalProperties: false
+      required:
+        - sentiment
+        - comment
+      properties:
+        sentiment:
+          type: string
+          enum:
+            - like
+            - dislike
+        comment:
+          type:
+            - string
+            - 'null'
+          maxLength: 2000
+    ReadingStateInput:
+      type: object
+      additionalProperties: false
+      required:
+        - state
+      properties:
+        state:
+          $ref: '#/components/schemas/ReadingState'
+    VisibilityInput:
+      type: object
+      additionalProperties: false
+      required:
+        - visibility
+      properties:
+        visibility:
+          $ref: '#/components/schemas/ItemVisibility'
+    TopicCorrectionInput:
+      type: object
+      additionalProperties: false
+      required:
+        - topicId
+        - membership
+      properties:
+        topicId:
+          $ref: '#/components/schemas/UUID'
+        membership:
+          type: string
+          enum:
+            - include
+            - exclude
+            - automatic
+    Recurrence:
+      oneOf:
+        - $ref: '#/components/schemas/DailyRecurrence'
+        - $ref: '#/components/schemas/WeeklyRecurrence'
+        - $ref: '#/components/schemas/MonthlyRecurrence'
+      discriminator:
+        propertyName: frequency
+        mapping:
+          daily: '#/components/schemas/DailyRecurrence'
+          weekly: '#/components/schemas/WeeklyRecurrence'
+          monthly: '#/components/schemas/MonthlyRecurrence'
+    DailyRecurrence:
+      type: object
+      additionalProperties: false
+      required:
+        - frequency
+        - hour
+        - minute
+      properties:
+        frequency:
+          type: string
+          const: daily
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        minute:
+          type: integer
+          minimum: 0
+          maximum: 59
+    WeeklyRecurrence:
+      type: object
+      additionalProperties: false
+      required:
+        - frequency
+        - weekdays
+        - hour
+        - minute
+      properties:
+        frequency:
+          type: string
+          const: weekly
+        weekdays:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+            maximum: 7
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        minute:
+          type: integer
+          minimum: 0
+          maximum: 59
+    MonthlyRecurrence:
+      type: object
+      additionalProperties: false
+      required:
+        - frequency
+        - rule
+        - hour
+        - minute
+      properties:
+        frequency:
+          type: string
+          const: monthly
+        rule:
+          oneOf:
+            - $ref: '#/components/schemas/MonthlyDayOfMonthRule'
+            - $ref: '#/components/schemas/MonthlyNthWeekdayRule'
+            - $ref: '#/components/schemas/MonthlyLastDayRule'
+          discriminator:
+            propertyName: type
+            mapping:
+              dayOfMonth: '#/components/schemas/MonthlyDayOfMonthRule'
+              nthWeekday: '#/components/schemas/MonthlyNthWeekdayRule'
+              lastDay: '#/components/schemas/MonthlyLastDayRule'
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        minute:
+          type: integer
+          minimum: 0
+          maximum: 59
+    MonthlyDayOfMonthRule:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - day
+      properties:
+        type:
+          type: string
+          const: dayOfMonth
+        day:
+          type: integer
+          minimum: 1
+          maximum: 31
+    MonthlyNthWeekdayRule:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - weekday
+        - occurrence
+      properties:
+        type:
+          type: string
+          const: nthWeekday
+        weekday:
+          type: integer
+          minimum: 1
+          maximum: 7
+        occurrence:
+          type: integer
+          minimum: 1
+          maximum: 5
+    MonthlyLastDayRule:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: lastDay
+    DigestTopicInput:
+      type: object
+      additionalProperties: false
+      required:
+        - topicId
+        - itemLimit
+      properties:
+        topicId:
+          $ref: '#/components/schemas/UUID'
+        itemLimit:
+          type: integer
+          minimum: 1
+          maximum: 15
+          default: 5
+    DigestList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigestDefinition'
+    DigestInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - topics
+        - timezone
+        - recurrence
+        - enabled
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        topics:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DigestTopicInput'
+        timezone:
+          type: string
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+        enabled:
+          type: boolean
+    DigestPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        topics:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DigestTopicInput'
+        timezone:
+          type: string
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+        enabled:
+          type: boolean
+    DigestSection:
+      type: object
+      additionalProperties: false
+      required:
+        - topicId
+        - topicName
+        - topicRevision
+        - items
+        - failure
+      properties:
+        topicId:
+          $ref: '#/components/schemas/UUID'
+        topicName:
+          type: string
+        topicRevision:
+          type: integer
+          minimum: 1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigestItem'
+        failure:
+          type:
+            - string
+            - 'null'
+    DigestItem:
+      type: object
+      additionalProperties: false
+      required:
+        - item
+        - summary
+        - explanation
+        - aiSummary
+      properties:
+        item:
+          $ref: '#/components/schemas/Item'
+        summary:
+          type: string
+        explanation:
+          $ref: '#/components/schemas/FeedExplanation'
+        aiSummary:
+          description: Separate annotation state for the exact saved Item version. Reading never generates text.
+          oneOf:
+            - $ref: '#/components/schemas/ItemSummary'
+            - type: 'null'
+    DigestIssueList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigestIssueSummary'
+        nextCursor:
+          type:
+            - string
+            - 'null'
+    JobList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        nextCursor:
+          type:
+            - string
+            - 'null'
+    ExportBundle:
+      type: object
+      additionalProperties: false
+      required:
+        - formatVersion
+        - exportedAt
+        - workspaceId
+        - settings
+        - embeddingModel
+        - preferenceProfile
+        - sources
+        - topics
+        - feedback
+        - digests
+      properties:
+        formatVersion:
+          type: string
+          const: topic-stream/v2
+        exportedAt:
+          $ref: '#/components/schemas/Timestamp'
+        workspaceId:
+          $ref: '#/components/schemas/UUID'
+        settings:
+          $ref: '#/components/schemas/WorkspaceSettings'
+        embeddingModel:
+          $ref: '#/components/schemas/EmbeddingModelDescriptor'
+        preferenceProfile:
+          $ref: '#/components/schemas/PreferenceProfile'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/Topic'
+        feedback:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortableFeedback'
+        digests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigestDefinition'
+    PortableFeedback:
+      type: object
+      additionalProperties: false
+      required:
+        - canonicalUrl
+        - feedback
+      properties:
+        canonicalUrl:
+          type: string
+          format: uri
+        feedback:
+          $ref: '#/components/schemas/Feedback'
+  responses:
+    problem:
+      description: Request failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            internal-error:
+              value:
+                type: urn:topic-stream:problem:internal-error
+                code: internal_error
+                title: Internal Server Error
+                status: 500
+                detail: The server could not complete the request.
+            source-validation:
+              value:
+                type: urn:topic-stream:problem:invalid-source
+                code: invalid_source
+                title: Invalid source
+                status: 400
+                detail: Check the source fields and try again.
+                errors:
+                  - field: name
+                    message: This field is required.
+                  - field: pollIntervalMinutes
+                    message: Enter a value between 15 and 10080.
+    projection-pending:
+      description: Canonical PostgreSQL state committed but its retrieval projection could not be delivered
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProjectionPendingProblem'
+  headers:
+    version-etag:
+      description: Quoted integer resource version for optimistic updates.
+      schema:
+        type: string
+  parameters:
+    if-match-version:
+      name: If-Match
+      in: header
+      required: true
+      description: Quoted integer version returned in the resource ETag.
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+    source-id:
+      name: sourceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    topic-id:
+      name: topicId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    item-id:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    image-id:
+      name: imageId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    digest-id:
+      name: digestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    issue-id:
+      name: issueId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    job-id:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    model-id:
+      name: modelId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid

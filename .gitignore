@@ -1,0 +1,36 @@
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# JavaScript dependencies and package-manager caches
+node_modules/
+.pnpm-store/
+
+# Generated frontend bundles and reports
+plugin/main.js
+plugin/main.js.map
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Go build and profiling output
+/bin/
+/topic-stream
+*.test
+coverage.out
+*.prof
+
+# Local tooling and editor state
+.idea/
+.vscode/
+.DS_Store
+*.log
+*.tmp
+__pycache__/
+.artifacts/
+
+# Local product issues
+.scratch/

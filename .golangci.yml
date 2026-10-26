@@ -1,0 +1,51 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - cyclop
+    - gocognit
+    - godoclint
+    - inamedparam
+    - revive
+  settings:
+    cyclop:
+      max-complexity: 10
+    gocognit:
+      min-complexity: 15
+    godoclint:
+      default: none
+      enable: [require-doc]
+    inamedparam:
+      skip-single-param: false
+    revive:
+      rules:
+        - name: argument-limit
+          arguments: [4]
+        - name: exported
+          arguments:
+            - check-private-receivers
+            - check-public-interface
+            - disable-stuttering-check
+            - disable-checks-on-constants
+            - disable-checks-on-variables
+  exclusions:
+    generated: strict
+    rules:
+      # Revive owns production documentation; godoclint also checks test helpers.
+      - path-except: _test\.go$
+        linters: [godoclint]
+      # Test entry points describe their scenarios through names and assertions.
+      # Keep documentation checks for helpers and methods in the same files.
+      - path: _test\.go$
+        linters: [godoclint]
+        text: '^symbol should have a godoc'
+        source: '^func ((Test|Benchmark|Fuzz)([A-Z0-9_][A-Za-z0-9_]*)?\([^)]* \*testing\.(T|B|F|M)|Example([A-Z0-9_][A-Za-z0-9_]*)?\()\) \{'
+
+formatters:
+  enable:
+    - goimports

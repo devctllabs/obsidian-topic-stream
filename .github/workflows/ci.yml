@@ -1,0 +1,303 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full immutable commit SHA to validate
+        required: true
+        type: string
+      component:
+        description: Force checks regardless of changed paths
+        type: choice
+        options: [all, backend, plugin]
+        default: all
+      race:
+        description: Use the race detector for the backend primary suite
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Full immutable commit SHA to validate
+        required: true
+        type: string
+      component:
+        description: Force checks regardless of changed paths
+        type: string
+        default: none
+      race:
+        description: Use the race detector for the backend primary suite
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.source_sha || '' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Select checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      backend: ${{ steps.routes.outputs.backend }}
+      plugin: ${{ steps.routes.outputs.plugin }}
+      contract: ${{ steps.routes.outputs.contract }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release tooling
+        run: python3 -m unittest discover -s .github/scripts/tests -t .github/scripts -v
+      - name: Validate local tooling
+        run: python3 -m unittest discover -s tools/tests -v
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          token: ${{ github.token }}
+          base: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          filters: |
+            backend:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Dockerfile'
+              - '.dockerignore'
+              - '.env.example'
+              - '.golangci.yml'
+              - 'compose*.yaml'
+              - 'cmd/**'
+              - 'gen/**'
+              - 'internal/**'
+              - 'migrations/**'
+              - 'tools/**'
+            plugin:
+              - 'plugin/**'
+            contract:
+              - 'api/openapi/**'
+              - 'devctl.yaml'
+              - 'redocly.yaml'
+              - 'gen/**'
+              - 'tools/oapi/**'
+            shared:
+              - '**'
+              - '!docs/**'
+              - '!.scratch/**'
+              - '!README.md'
+              - '!CONTEXT.md'
+              - '!DESIGN.md'
+              - '!PRODUCT.md'
+              - '!AGENTS.md'
+              - '!LICENSE'
+              - '!.gitignore'
+      - name: Resolve selected owners
+        id: routes
+        env:
+          COMPONENT: ${{ inputs.component || 'none' }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+          PLUGIN: ${{ steps.filter.outputs.plugin }}
+          CONTRACT: ${{ steps.filter.outputs.contract }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+        run: |
+          set -euo pipefail
+
+          case "$COMPONENT" in
+            none|backend|plugin|all)
+              ;;
+            *)
+              echo "unsupported component: $COMPONENT" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$COMPONENT" == backend || "$COMPONENT" == all || "$BACKEND" == true || "$SHARED" == true ]]; then
+            echo 'backend=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'backend=false' >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$COMPONENT" == plugin || "$COMPONENT" == all || "$PLUGIN" == true || "$SHARED" == true ]]; then
+            echo 'plugin=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'plugin=false' >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$COMPONENT" != none || "$CONTRACT" == true || "$SHARED" == true ]]; then
+            echo 'contract=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'contract=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    name: Backend primary
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: topic_stream
+          POSTGRES_USER: topic_stream
+          POSTGRES_PASSWORD: integration
+        ports: ['5432/tcp']
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U topic_stream"
+          --health-interval 2s --health-timeout 2s --health-retries 30
+      qdrant:
+        image: qdrant/qdrant:v1.20
+        ports: ['6333/tcp', '6334/tcp']
+    env:
+      RACE: ${{ github.event_name == 'push' || inputs.race }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v5
+      - name: Install matching PostgreSQL dump and restore clients
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/topic-stream-pgdg.list
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
+      - name: Lint all maintained Go source
+        run: mise run lint-optional
+      - name: Lint workflow syntax and expressions
+        run: mise run lint-ci
+      - name: Complete primary suite once
+        shell: bash
+        env:
+          TOPIC_STREAM_TEST_POSTGRES_DSN: postgres://topic_stream:integration@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/topic_stream?sslmode=disable
+          TOPIC_STREAM_TEST_QDRANT_URL: http://127.0.0.1:${{ job.services.qdrant.ports['6334'] }}
+          QDRANT_HTTP: http://127.0.0.1:${{ job.services.qdrant.ports['6333'] }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-all-errors --retry-delay 1 --retry-max-time 45 --max-time 2 "$QDRANT_HTTP/readyz"
+          if [[ "$RACE" == true ]]; then
+            mise run test-integration-race
+          else
+            mise run test-integration
+          fi
+      - name: Build backend
+        run: go build -o "$RUNNER_TEMP/topic-stream" ./cmd/topic-stream
+      - name: Service failure diagnostics
+        if: failure()
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          QDRANT_CONTAINER: ${{ job.services.qdrant.id }}
+        run: |
+          mkdir -p .artifacts/ci
+          docker logs "$POSTGRES_CONTAINER" > .artifacts/ci/postgres.log 2>&1 || true
+          docker logs "$QDRANT_CONTAINER" > .artifacts/ci/qdrant.log 2>&1 || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: backend-diagnostics-${{ inputs.source_sha || github.sha }}
+          path: .artifacts/ci/
+          retention-days: 7
+          if-no-files-found: ignore
+          include-hidden-files: true
+
+  plugin:
+    name: Plugin current checks
+    needs: changes
+    if: needs.changes.outputs.plugin == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir plugin check
+      - run: pnpm --dir plugin build
+
+  contract:
+    name: Current contract and generated source
+    needs: changes
+    if: needs.changes.outputs.contract == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm contract:lint
+      - name: Validate and regenerate owned outputs
+        run: |
+          mise run codegen
+          git diff --exit-code -- gen/ .env.example
+
+  gate:
+    name: CI gate
+    needs: [changes, backend, plugin, contract]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require selected checks to pass
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BACKEND_SELECTED: ${{ needs.changes.outputs.backend }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          PLUGIN_SELECTED: ${{ needs.changes.outputs.plugin }}
+          PLUGIN_RESULT: ${{ needs.plugin.result }}
+          CONTRACT_SELECTED: ${{ needs.changes.outputs.contract }}
+          CONTRACT_RESULT: ${{ needs.contract.result }}
+        run: |
+          set -euo pipefail
+
+          test "$CHANGES_RESULT" = success
+
+          check_selected() {
+            local name="$1"
+            local selected="$2"
+            local result="$3"
+            if [[ "$selected" == true ]]; then
+              test "$result" = success || {
+                echo "$name was selected but finished with: $result" >&2
+                return 1
+              }
+            elif [[ "$result" != skipped && "$result" != success ]]; then
+              echo "$name was not selected but finished with: $result" >&2
+              return 1
+            fi
+          }
+
+          check_selected backend "$BACKEND_SELECTED" "$BACKEND_RESULT"
+          check_selected plugin "$PLUGIN_SELECTED" "$PLUGIN_RESULT"
+          check_selected contract "$CONTRACT_SELECTED" "$CONTRACT_RESULT"

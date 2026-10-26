@@ -1,0 +1,71 @@
+name: topic-stream
+
+services:
+  init:
+    image: ${TOPIC_STREAM_BACKEND_IMAGE:?Set TOPIC_STREAM_BACKEND_IMAGE in .env}
+    env_file: .env
+    environment:
+      TOPIC_STREAM_DB_PRIMARY_KIND: ${TOPIC_STREAM_DB_PRIMARY_KIND:?Set TOPIC_STREAM_DB_PRIMARY_KIND in .env}
+      TOPIC_STREAM_DB_PRIMARY_POSTGRES_DSN: ${TOPIC_STREAM_COMPOSE_DB_PRIMARY_POSTGRES_DSN:?Set TOPIC_STREAM_COMPOSE_DB_PRIMARY_POSTGRES_DSN in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        if ! timeout 60 sh -c 'until wget -q -T 2 -O /dev/null http://qdrant:6333/readyz 2>/dev/null; do sleep 1; done'; then
+          echo 'Qdrant did not become ready within 60 seconds' >&2
+          exit 1
+        fi
+        exec topic-stream db up
+    restart: "no"
+
+  server:
+    image: ${TOPIC_STREAM_BACKEND_IMAGE:?Set TOPIC_STREAM_BACKEND_IMAGE in .env}
+    env_file: .env
+    environment:
+      TOPIC_STREAM_DB_PRIMARY_KIND: ${TOPIC_STREAM_DB_PRIMARY_KIND:?Set TOPIC_STREAM_DB_PRIMARY_KIND in .env}
+      TOPIC_STREAM_DB_PRIMARY_POSTGRES_DSN: ${TOPIC_STREAM_COMPOSE_DB_PRIMARY_POSTGRES_DSN:?Set TOPIC_STREAM_COMPOSE_DB_PRIMARY_POSTGRES_DSN in .env}
+      TOPIC_STREAM_HTTP_ADDR: ${TOPIC_STREAM_COMPOSE_HTTP_ADDR:?Set TOPIC_STREAM_COMPOSE_HTTP_ADDR in .env}
+      TOPIC_STREAM_QDRANT_URL: ${TOPIC_STREAM_COMPOSE_QDRANT_URL:?Set TOPIC_STREAM_COMPOSE_QDRANT_URL in .env}
+      TOPIC_STREAM_WORKSPACE_ID: ${TOPIC_STREAM_WORKSPACE_ID:?Set a stable UUIDv4 Workspace ID in .env}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "127.0.0.1:7331:7331"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, -q, -T, "3", -O, /dev/null, "http://127.0.0.1:7331/api/v1/system/status"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${TOPIC_STREAM_POSTGRES_DB:?Set TOPIC_STREAM_POSTGRES_DB in .env}
+      POSTGRES_USER: ${TOPIC_STREAM_POSTGRES_USER:?Set TOPIC_STREAM_POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${TOPIC_STREAM_POSTGRES_PASSWORD:?Set TOPIC_STREAM_POSTGRES_PASSWORD in .env}
+    volumes:
+      - topic-stream-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.20
+    volumes:
+      - topic-stream-qdrant:/qdrant/storage
+
+volumes:
+  topic-stream-postgres:
+  topic-stream-qdrant:
