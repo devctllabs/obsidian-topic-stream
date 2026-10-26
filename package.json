@@ -1,0 +1,12 @@
+{
+  "name": "obsidian-topic-stream",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "contract:lint": "redocly lint api/openapi/openapi.yaml",
+    "check": "pnpm contract:lint && pnpm --dir plugin check"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.54.3"
+  }
+}

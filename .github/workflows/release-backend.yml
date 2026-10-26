@@ -1,0 +1,187 @@
+name: Backend release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Explicit stable backend version increment
+        type: choice
+        options: [patch, minor, major]
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-backend
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    uses: ./.github/workflows/release-version.yml
+    with:
+      component: backend
+      bump: ${{ inputs.bump }}
+      source_sha: ${{ github.sha }}
+
+  checks:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+    with:
+      source_sha: ${{ needs.version.outputs.source_sha }}
+      component: backend
+      race: true
+
+  artifacts:
+    name: Backend Linux and macOS archives
+    needs: [version, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      SOURCE_SHA: ${{ needs.version.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build backend archives
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+          output=.artifacts/release/backend
+          mkdir -p "$output"
+          for target in linux_amd64 darwin_arm64; do
+            goos=${target%_*}
+            goarch=${target#*_}
+            stage="$RUNNER_TEMP/backend-$target"
+            mkdir -p "$stage"
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build \
+              -trimpath -buildvcs=false \
+              -ldflags "-s -w -X main.version=$VERSION" \
+              -o "$stage/topic-stream" ./cmd/topic-stream
+            cp LICENSE "$stage/LICENSE"
+            chmod 755 "$stage/topic-stream"
+            chmod 644 "$stage/LICENSE"
+            if [ "$target" = linux_amd64 ]; then
+              file "$stage/topic-stream" | grep -F 'ELF 64-bit' | grep -F 'x86-64'
+              "$stage/topic-stream" --version | grep -Fx "topic-stream version $VERSION"
+            else
+              file "$stage/topic-stream" | grep -F 'Mach-O 64-bit' | grep -F 'arm64'
+            fi
+            tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+              -C "$stage" -cf - topic-stream LICENSE | gzip -n > "$output/topic-stream_${VERSION}_${target}.tar.gz"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: backend-release-${{ needs.version.outputs.source_sha }}
+          path: .artifacts/release/backend/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Backend draft release
+    needs: [version, checks, artifacts]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+      SOURCE_SHA: ${{ needs.version.outputs.source_sha }}
+      NOTES_PATH: backend-release-notes.md
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.source_sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: backend-release-${{ needs.version.outputs.source_sha }}
+          path: .artifacts/release/backend
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+      - name: Validate immutable source and existing refs
+        run: |
+          set -euo pipefail
+          test "$TAG" = "backend/v$VERSION"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -s ".artifacts/release/backend/topic-stream_${VERSION}_linux_amd64.tar.gz"
+          test -s ".artifacts/release/backend/topic-stream_${VERSION}_darwin_arm64.tar.gz"
+
+          remote_tag=$(git ls-remote origin "refs/tags/$TAG")
+          if [ -n "$remote_tag" ]; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SOURCE_SHA"
+            echo "tag $TAG already points at the requested source; it will not be moved"
+          fi
+
+          response="$RUNNER_TEMP/release-response"
+          error="$RUNNER_TEMP/release-error"
+          status=0
+          gh api --include "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$response" 2> "$error" || status=$?
+          http_status=$(awk '/^HTTP\// { code=$2 } END { print code }' "$response")
+          if [ "$status" = 0 ] && [ "$http_status" = 200 ]; then
+            echo "release $TAG already exists; refusing to overwrite it" >&2
+            exit 1
+          elif [ "$status" != 0 ] && [ "$http_status" = 404 ]; then
+            :
+          else
+            cat "$error" >&2
+            echo "release lookup failed; refusing publication" >&2
+            exit 1
+          fi
+      - name: Generate component release notes
+        run: |
+          set -euo pipefail
+          git-cliff --unreleased --tag "$TAG" \
+            --tag-pattern '^backend/v[0-9]+\.[0-9]+\.[0-9]+$' \
+            --include-path 'cmd/**' \
+            --include-path 'internal/**' \
+            --include-path 'gen/**' \
+            --include-path 'migrations/**' \
+            --include-path 'tools/**' \
+            --include-path 'go.mod' \
+            --include-path 'go.sum' \
+            --include-path 'Dockerfile' \
+            --include-path '.dockerignore' \
+            --include-path '.env.example' \
+            --include-path '.golangci.yml' \
+            --include-path 'compose*.yaml' \
+            --include-path 'api/openapi/**' \
+            --include-path 'devctl.yaml' \
+            --include-path 'redocly.yaml' \
+            --output "$NOTES_PATH"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          # Backend release notes
+
+          $(cat "$NOTES_PATH")
+          EOF
+      - name: Create annotated tag and draft release
+        run: |
+          set -euo pipefail
+          if [ -z "$(git ls-remote origin "refs/tags/$TAG")" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a "$TAG" "$SOURCE_SHA" -m "Backend $VERSION"
+            git push origin "refs/tags/$TAG"
+          fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --target "$SOURCE_SHA" \
+            --title "Backend $VERSION" --notes-file "$NOTES_PATH" --draft --latest=false \
+            .artifacts/release/backend/*.tar.gz

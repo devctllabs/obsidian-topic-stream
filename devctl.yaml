@@ -1,0 +1,83 @@
+version: 1
+project:
+  name: topic-stream
+  language: go
+env:
+  prefix: TOPIC_STREAM_
+  custom:
+    - group: Bootstrap
+      vars:
+        - {key: BOOTSTRAP_EMBEDDING_ENDPOINT, type: string, default: "http://localhost:11434/v1"}
+        - {key: BOOTSTRAP_EMBEDDING_MODEL, type: string, default: "qwen3-embedding:0.6b"}
+        - {key: BOOTSTRAP_EMBEDDING_DIMENSIONS, type: int, default: 1024}
+    - group: Compose
+      vars:
+        - {key: BACKEND_IMAGE, type: string, default: "ghcr.io/ethernity/obsidian-topic-stream:latest"}
+        - {key: POSTGRES_DB, type: string, default: "topic_stream"}
+        - {key: POSTGRES_USER, type: string, default: "topic_stream"}
+        - {key: POSTGRES_PASSWORD, type: string, default: "topic_stream"}
+        - {key: COMPOSE_DB_PRIMARY_POSTGRES_DSN, type: string, default: "postgres://topic_stream:topic_stream@postgres:5432/topic_stream?sslmode=disable"}
+        - {key: COMPOSE_HTTP_ADDR, type: string, default: "0.0.0.0:7331"}
+        - {key: COMPOSE_QDRANT_URL, type: string, default: "http://qdrant:6334"}
+    - group: Runtime
+      vars:
+        - {key: HTTP_ADDR, type: string, default: "127.0.0.1:7331"}
+        - {key: WORKSPACE_ID, type: string}
+        - {key: QDRANT_URL, type: string, default: "http://127.0.0.1:6334"}
+        - {key: QDRANT_FULL_SCAN_THRESHOLD_KB, type: int, default: 100000}
+        - {key: QDRANT_HNSW_EF, type: int, default: 256}
+        - {key: QDRANT_ACORN_ENABLED, type: bool, default: true}
+        - {key: QDRANT_ACORN_MAX_SELECTIVITY_PERCENT, type: int, default: 40}
+        - {key: SHUTDOWN_TIMEOUT, type: duration, default: 10s}
+        - {key: SCHEDULERS_ENABLED, type: bool, default: true}
+        - {key: WORKERS_ENABLED, type: bool, default: true}
+        - {key: WORKER_FETCH_CONCURRENCY, type: int, default: 4}
+        - {key: WORKER_FETCH_PER_HOST_CONCURRENCY, type: int, default: 1}
+        - {key: WORKER_GENERATION_CONCURRENCY, type: int, default: 1}
+        - {key: WORKER_RETRIEVAL_CONCURRENCY, type: int, default: 2}
+        - {key: EMBEDDING_BATCH_SIZE, type: int, default: 8}
+        - {key: EMBEDDING_BATCH_INPUT_BYTES, type: int, default: 1048576}
+        - {key: EMBEDDING_CONCURRENCY, type: int, default: 1}
+        - {key: WORKER_FEED_PREPARATION_CONCURRENCY, type: int, default: 2}
+        - {key: WORKER_MAINTENANCE_CONCURRENCY, type: int, default: 1}
+paths: {}
+sources: {}
+exports:
+  public-api:
+    kind: openapi
+    path: api/openapi/openapi.yaml
+components:
+  http:
+    server:
+      openapi: api/openapi/openapi.yaml
+      start: {env: HTTP_SERVER_ENABLED, default: true}
+    env: {}
+  db:
+    connections:
+      - name: primary
+        default: postgres
+        kind_env: DB_PRIMARY_KIND
+        variants:
+          - name: postgres
+            kind: postgres
+            dsn_env: DB_PRIMARY_POSTGRES_DSN
+            secret: true
+            migrations:
+              path: migrations/primary/postgres
+              database_env: DB_PRIMARY_POSTGRES_DSN
+    env: {}
+  logging:
+    env: {}
+  health:
+    server:
+      start: {env: HEALTH_SERVER_ENABLED, default: true}
+    env: {}
+languages:
+  go:
+    module: github.com/ethernity/obsidian-topic-stream
+    generators:
+      config:
+        out: gen/config
+      http:
+        oapi_config: tools/oapi/server.yaml
+        server_out: gen/serverhttp

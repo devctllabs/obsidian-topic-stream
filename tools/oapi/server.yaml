@@ -1,0 +1,8 @@
+package: serverhttp
+generate:
+  models: true
+  echo5-server: true
+  strict-server: true
+  embedded-spec: true
+output-options:
+  skip-prune: true
