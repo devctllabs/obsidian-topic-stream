@@ -1,6 +1,6 @@
 # Digests and schedules
 
-A Digest Definition stores one IANA timezone, one structured recurrence, and an ordered list of Topic relationships. Each relationship has its own `itemLimit` from 1 through 15. Definitions are versioned to prevent concurrent edits from silently overwriting each other. Retained immutable issues survive definition deletion. These capabilities are available through the backend API; the current Obsidian plugin has no Digest controls.
+A Digest Definition stores one IANA timezone, one structured recurrence, and an ordered list of Topic relationships. Each relationship has its own `itemLimit` from 1 through 15. Definitions are versioned to prevent concurrent edits from silently overwriting each other. Retained immutable issues survive definition deletion. The backend API and Obsidian plugin expose definition management, explicit Build and saved Issue reading; see the [current Obsidian experience](obsidian-feed.md).
 
 Recurrence supports daily, a weekly subset of ISO weekdays, and monthly day-of-month, nth-weekday, or last-day rules. The scheduler chooses the first valid instant when a local wall-clock time does not exist and runs only the first occurrence when a wall-clock time repeats. It enqueues one catch-up generation when several intervals were missed, advances directly to the next occurrence after the current time, and does not move the calendar for a manual Build.
 

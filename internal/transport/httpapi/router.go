@@ -19,6 +19,7 @@ import (
 
 // Dependencies supplies the Workspace-scoped capabilities exposed by the HTTP API.
 type Dependencies struct {
+	CORS            echo.MiddlewareFunc
 	WorkspaceID     uuid.UUID
 	Status          *systemstatus.Service
 	Feed            Feed
@@ -57,6 +58,9 @@ func NewRouter(dependencies Dependencies) (http.Handler, error) {
 	router := echo.New()
 	router.HTTPErrorHandler = handleHTTPError
 	router.JSONSerializer = strictJSONSerializer{}
+	if dependencies.CORS != nil {
+		router.Use(dependencies.CORS)
+	}
 	router.Use(validator)
 
 	serverhttp.RegisterHandlers(router, serverhttp.NewStrictHandler(server, nil))

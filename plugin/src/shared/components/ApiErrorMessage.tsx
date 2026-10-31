@@ -1,4 +1,4 @@
-import { ApiError } from "../api/errors";
+import { ApiError } from "../../api/errors";
 
 interface ApiErrorMessageProps {
   error: unknown;

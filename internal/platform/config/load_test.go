@@ -56,3 +56,33 @@ func TestLoadRejectsInvalidDuration(t *testing.T) {
 
 	require.ErrorContains(t, err, "ShutdownTimeout")
 }
+
+func TestLoadCORSDefault(t *testing.T) {
+	t.Chdir(t.TempDir())
+	loaded, err := config.Load(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, "app://obsidian.md", loaded.HTTP.CorsAllowedOrigins)
+}
+
+func TestLoadCORSPreservesFileAndProcessPresence(t *testing.T) {
+	for _, scenario := range []struct {
+		name, file, want string
+		process          *string
+	}{
+		{name: "file list", file: "https://file.example", want: "https://file.example"},
+		{name: "file explicitly disabled", file: "", want: ""},
+		{name: "process replaces file", file: "https://file.example", process: new("app://obsidian.md,https://process.example"), want: "app://obsidian.md,https://process.example"},
+		{name: "empty process disables file", file: "https://file.example", process: new(""), want: ""},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			require.NoError(t, os.WriteFile(".env", []byte("TOPIC_STREAM_CORS_ALLOWED_ORIGINS="+scenario.file+"\n"), 0o600))
+			if scenario.process != nil {
+				t.Setenv("TOPIC_STREAM_CORS_ALLOWED_ORIGINS", *scenario.process)
+			}
+			loaded, err := config.Load(t.Context())
+			require.NoError(t, err)
+			require.Equal(t, scenario.want, loaded.HTTP.CorsAllowedOrigins)
+		})
+	}
+}

@@ -6,11 +6,15 @@
     "lib": ["DOM", "ES2022"],
     "jsx": "react-jsx",
     "strict": true,
+    "isolatedModules": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "useDefineForClassFields": true,
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "esbuild.config.mjs"]
+  "include": ["src", ".storybook", "vitest.config.ts", "esbuild.config.mjs"]
 }

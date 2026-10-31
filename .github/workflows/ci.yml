@@ -219,7 +219,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.plugin == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.artifacts/playwright
     steps:
       - uses: actions/checkout@v7
         with:
@@ -230,9 +232,28 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.artifacts/playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir plugin exec playwright install --with-deps chromium
       - run: pnpm --dir plugin check
+      - run: pnpm --dir plugin test:storybook
+      - run: pnpm --dir plugin build:storybook
       - run: pnpm --dir plugin build
+      - name: Production Obsidian lifecycle and product flows (headless)
+        run: pnpm --dir plugin test:e2e:headless
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: plugin-host-diagnostics-${{ inputs.source_sha || github.sha }}
+          path: .artifacts/obsidian/logs/
+          retention-days: 7
+          if-no-files-found: ignore
 
   contract:
     name: Current contract and generated source
@@ -257,6 +278,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm contract:lint
+      - run: pnpm --dir plugin api:check
       - name: Validate and regenerate owned outputs
         run: |
           mise run codegen

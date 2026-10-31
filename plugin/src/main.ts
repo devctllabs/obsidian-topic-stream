@@ -1,15 +1,21 @@
 import { Plugin } from "obsidian";
 
-import { TopicStreamSettingTab, DEFAULT_SETTINGS, type TopicStreamSettings } from "./settings";
+import { SettingsStore } from "./features/settings/persistence";
+import { TopicStreamSettingTab } from "./settings";
 import { TOPIC_STREAM_VIEW, FeedItemView } from "./view/FeedItemView";
 
 export default class TopicStreamPlugin extends Plugin {
-  public settings: TopicStreamSettings = DEFAULT_SETTINGS;
+  public settings!: SettingsStore;
 
   public override async onload(): Promise<void> {
-    this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData() as Partial<TopicStreamSettings> };
+    this.settings = await SettingsStore.load({
+      loadPreferences: () => this.loadData() as Promise<unknown>,
+      savePreferences: (value) => this.saveData(value),
+      loadDevice: () => this.app.loadLocalStorage("topic-stream:device:v1") as unknown,
+      saveDevice: (value) => this.app.saveLocalStorage("topic-stream:device:v1", value)
+    });
 
-    this.registerView(TOPIC_STREAM_VIEW, (leaf) => new FeedItemView(leaf, this.settings.serverUrl));
+    this.registerView(TOPIC_STREAM_VIEW, (leaf) => new FeedItemView(leaf, this.settings));
     this.addRibbonIcon("newspaper", "Open Topic Stream", () => void this.activateView());
     this.addCommand({
       id: "open-topic-stream",
@@ -20,11 +26,10 @@ export default class TopicStreamPlugin extends Plugin {
   }
 
   public override onunload(): void {
-    this.app.workspace.detachLeavesOfType(TOPIC_STREAM_VIEW);
-  }
-
-  public async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
+    for (const leaf of this.app.workspace.getLeavesOfType(TOPIC_STREAM_VIEW)) {
+      if (leaf.view instanceof FeedItemView) leaf.view.dispose();
+    }
+    this.settings.dispose();
   }
 
   private async activateView(): Promise<void> {

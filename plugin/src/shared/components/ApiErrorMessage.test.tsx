@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { httpError } from "../api/errors";
+import { httpError } from "../../api/errors";
 import { ApiErrorMessage } from "./ApiErrorMessage";
 
 describe("ApiErrorMessage", () => {

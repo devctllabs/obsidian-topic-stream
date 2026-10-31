@@ -3,7 +3,8 @@
 Synchronization, generation, model transitions, indexing, and Feed preparation run as durable Jobs.
 The Job API lists work for the current Workspace and exposes status, attempts, timestamps, duration,
 cancellation state, and safe diagnostic reasons. Internal arguments are not exposed. The current
-Obsidian plugin does not yet provide Task Center controls.
+Obsidian plugin provides Task Center list/detail, explicit Refresh, confirmed Cancel and eligible
+Retry controls; see the [current Obsidian experience](obsidian-feed.md).
 
 Jobs move through `queued`, `running`, `retry_wait`, `succeeded`, `dead`, or `cancelled`. Temporary
 failures retry within a bounded policy; permanent failures stop. Fetch, retrieval, and Feed preparation

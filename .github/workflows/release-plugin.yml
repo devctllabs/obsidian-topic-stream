@@ -113,6 +113,7 @@ jobs:
           test -s release-assets/main.js
           test -s release-assets/manifest.json
           test -s release-assets/styles.css
+          cmp plugin/manifest.json release-assets/manifest.json
 
           remote_tag=$(git ls-remote origin "refs/tags/$TAG")
           if [ -n "$remote_tag" ]; then

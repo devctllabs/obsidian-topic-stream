@@ -4,22 +4,18 @@ A personal reading stream inside Obsidian, shaped by the sources and topics you 
 
 Topic Stream brings articles, papers, videos, and repositories into one place. Describe what you
 want to follow, read a focused Feed, and use feedback to improve future recommendations.
-The server runs on your own machine. The current Obsidian plugin provides an early Feed view;
-the backend exposes the broader reading and retrieval capabilities through its API.
+Run the backend on your own machine or a reachable server, then connect the Obsidian plugin.
 
 ## What you can do
 
-In the current plugin you can create Topics, request Sync all, browse already-published Feed
-history, open original links, and give Like/Dislike feedback with optional comments. Its Source
-form still sends the old request shape; create Sources through the backend API using the guide.
-Its **Refresh** button rereads saved history. To publish recommendations, use the backend
-[Feed Refresh API](docs/guides/getting-started.md#get-your-first-feed).
+- Manage Sources, Topics, preferences, models and Digest definitions in Settings.
+- Read the Feed by Topic, keep an Unread view, and publish the next batch with explicit Refresh.
+- Search the archive, read cleaned Markdown, load images by consent, and request an AI summary explicitly.
+- Read saved Digest editions, build Manual-only or scheduled definitions, and follow Tasks with safe Cancel/Retry.
+- Save independent Compact or Full Vault Snapshots, including bounded local attachments.
 
-The backend also supports arXiv, GitHub Trending and YouTube Sources, Topic corrections, archive
-Search, cleaned content and image delivery, explicit Item AI summaries, and scheduled Digests.
-Search, Reader, Digest, Task Center and AI-summary controls are not yet available in the plugin.
-The plugin does not yet write Vault Snapshots. See the
-[current Obsidian capabilities](docs/product/capabilities/obsidian-feed.md).
+Live advisories reconcile saved state without publishing Feed or generating AI text. The
+[plugin guide](docs/guides/using-topic-stream.md) describes each workflow.
 
 ## Get started
 
@@ -46,10 +42,51 @@ AI models are managed separately.
 
 4. [Build and install the Obsidian plugin](docs/guides/getting-started.md#install-the-obsidian-plugin),
    connect to `http://127.0.0.1:7331`, and follow the
-   [first Feed steps](docs/guides/getting-started.md#get-your-first-feed), including API publication.
+   [first Feed steps](docs/guides/getting-started.md#get-your-first-feed).
 
 The [getting started guide](docs/guides/getting-started.md) walks through configuration, model setup,
 and your first Feed. The default deployment exposes the API only on localhost; it has no built-in authentication.
+
+## Install the plugin manually
+
+Use the three files from a plugin release, or build this checkout:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --dir plugin build
+```
+
+Copy `plugin/main.js`, `plugin/manifest.json` and `plugin/styles.css` to
+`<vault>/.obsidian/plugins/topic-stream/`, then enable Topic Stream in Community plugins.
+Obsidian 1.8.7 or newer is required. Releases use independent plugin versions and the MIT license;
+Community Plugins directory submission is deferred.
+
+For mobile, `127.0.0.1` means the phone or tablet. Set Server URL to a backend reachable from that
+device through your configured LAN, VPN or protected HTTPS deployment. The default localhost-only
+Docker binding must be configured for that access. Streaming also needs the backend's
+[exact-origin CORS allowlist](docs/operations/configuration.md#browser-access-and-sse); the default
+is `app://obsidian.md`. Browser-safe dependencies and responsive frames are checked; physical
+iOS/Android smoke has not been performed.
+
+## Development
+
+Use a disposable development vault. Run `pnpm --dir plugin dev` and copy the three plugin files
+there; reload the plugin after code changes and restart Obsidian after manifest changes.
+`pnpm --dir plugin storybook` opens the connected production Shell with mocked external services
+at port 6006. `pnpm --dir plugin check` covers generated types, lint, the mobile dependency graph
+and unit tests. Run `pnpm --dir plugin test:storybook` for browser interactions and
+`pnpm --dir plugin test:e2e:headless` for real Obsidian in Docker/Xvfb; `test:e2e` runs it with a window.
+See [development](docs/development.md) and [release workflows](docs/releases.md) for details.
+
+## Network and privacy
+
+The plugin sends reading actions, settings and explicit requests to your configured backend via
+REST and receives advisory SSE. The backend fetches configured Sources and uses the embedding/AI
+providers you configure; optional AI generation is opt-in and may incur that provider's costs.
+Reader images stay unloaded until you choose to load them. Save to vault writes only the requested
+note and optional attachments through Obsidian; Remote-image snapshots retain network image URLs.
+Opening an original link uses the system browser. There is no telemetry, plugin account or bundled
+commercial service. Keep API access behind your chosen network/authentication boundary.
 
 ## Learn more
 
