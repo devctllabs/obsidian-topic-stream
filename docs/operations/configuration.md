@@ -40,6 +40,7 @@ directory → generated defaults. Host processes use `127.0.0.1` for the develop
 | `TOPIC_STREAM_POSTGRES_USER` | PostgreSQL user for both Compose projects; default `topic_stream` |
 | `TOPIC_STREAM_POSTGRES_PASSWORD` | Local development password for both Compose projects; default `topic_stream` |
 | `TOPIC_STREAM_HTTP_ADDR` | Host listener, default `127.0.0.1:7331` |
+| `TOPIC_STREAM_CORS_ALLOWED_ORIGINS` | Comma-separated exact browser Origin allowlist; default `app://obsidian.md`; explicit empty disables CORS |
 | `TOPIC_STREAM_QDRANT_URL` | gRPC endpoint, default `http://127.0.0.1:6334` |
 | `TOPIC_STREAM_COMPOSE_HTTP_ADDR` | Container HTTP listener, default `0.0.0.0:7331` |
 | `TOPIC_STREAM_COMPOSE_QDRANT_URL` | Container Qdrant gRPC endpoint, default `http://qdrant:6334` |
@@ -222,3 +223,22 @@ through a trusted private network or an externally authenticated TLS proxy and s
 Obsidian Server URL accordingly. A container's `0.0.0.0` listener does not itself change the host
 port's localhost binding; adjust deployment networking deliberately. Topic Stream has no built-in
 authentication, including on its admin API. Keep PostgreSQL and Qdrant private.
+
+## Browser access and SSE
+
+`TOPIC_STREAM_CORS_ALLOWED_ORIGINS` applies to the entire HTTP API, including admin operations.
+For example, `app://obsidian.md,https://reader.example` grants browser access to both exact
+Origins. Values are client Origins (scheme, host and optional port), not the backend address.
+Wildcards and patterns are rejected, and Echo validates the configured Origin format.
+The opaque Origin `null` is unsupported. Credentials are not enabled.
+
+An explicitly empty value, such as `TOPIC_STREAM_CORS_ALLOWED_ORIGINS=` in `.env`, disables the
+CORS middleware. Process ENV takes precedence over `.env` and generated defaults, including when
+its value is empty. Restart the host process, or recreate Compose services with `mise run up`,
+to apply a change. Editing this list does not change the network listener or add authentication.
+
+Preflight is handled before OpenAPI validation. Allowed request headers are Content-Type,
+If-Match and Idempotency-Key; browser code can read ETag. Standard API methods are GET, POST,
+PUT, PATCH and DELETE. The default Origin is verified with desktop Obsidian main/pop-out realms;
+additional platform Origins require actual evidence rather than assumptions. REST uses Obsidian
+requestUrl, while incremental SSE uses browser streaming and therefore needs a permitted Origin.

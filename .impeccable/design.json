@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T19:12:52Z",
+  "title": "Design System: Topic Stream",
+  "extensions": {
+    "colorMeta": {
+      "paper-light": { "role": "neutral", "displayName": "Light Paper" },
+      "paper-dark": { "role": "neutral", "displayName": "Dark Paper" },
+      "panel-light": { "role": "neutral", "displayName": "Light Panel" },
+      "panel-dark": { "role": "neutral", "displayName": "Dark Panel" },
+      "field-light": { "role": "neutral", "displayName": "Light Field" },
+      "field-dark": { "role": "neutral", "displayName": "Dark Field" },
+      "hover-light": { "role": "neutral", "displayName": "Light Hover" },
+      "hover-dark": { "role": "neutral", "displayName": "Dark Hover" },
+      "ink-light": { "role": "neutral", "displayName": "Light Ink" },
+      "ink-dark": { "role": "neutral", "displayName": "Dark Ink" },
+      "muted-light": { "role": "neutral", "displayName": "Light Muted" },
+      "muted-dark": { "role": "neutral", "displayName": "Dark Muted" },
+      "line-light": { "role": "neutral", "displayName": "Light Line" },
+      "line-dark": { "role": "neutral", "displayName": "Dark Line" },
+      "error-light": { "role": "semantic", "displayName": "Light Error" },
+      "error-dark": { "role": "semantic", "displayName": "Dark Error" },
+      "accent-light": { "role": "primary", "displayName": "Light Theme Accent Ink" },
+      "accent-dark": { "role": "primary", "displayName": "Dark Theme Accent" },
+      "accent-fill": { "role": "primary", "displayName": "Soft Peach Selection" },
+      "accent-hover": { "role": "primary", "displayName": "Peach Hover" },
+      "accent-soft-light": { "role": "primary", "displayName": "Light Peach Wash" },
+      "accent-soft-dark": { "role": "primary", "displayName": "Dark Peach Wash" },
+      "accent-ink": { "role": "neutral", "displayName": "Selected Row Ink" },
+      "selected-excerpt-ink": { "role": "neutral", "displayName": "Selected Excerpt Ink" },
+      "glass-light": { "role": "overlay", "displayName": "Light Glass Fallback" },
+      "glass-dark": { "role": "overlay", "displayName": "Dark Glass Fallback" },
+      "selection": { "role": "primary", "displayName": "Selection" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Interface Body", "purpose": "Host-native application copy and controls." },
+      "display": { "displayName": "Display / H1", "purpose": "One focal page or reading title." },
+      "title": { "displayName": "Title / H2", "purpose": "Section and content titles." },
+      "subsection": { "displayName": "Subsection / H3", "purpose": "Smaller resource headings." },
+      "prose": { "displayName": "Reading Prose", "purpose": "Article content with a comfortable reading measure." },
+      "metadata": { "displayName": "Metadata", "purpose": "Source, date, Topic, feedback, and status context." },
+      "settings-label": { "displayName": "Settings Label", "purpose": "Muted labels above settings form fields at 0.8125em." },
+      "note-label": { "displayName": "Note Label", "purpose": "The optional note prompt at 1em within the 14px note panel." }
+    },
+    "shadows": [
+      { "name": "light-overlay", "value": "0 16px 48px rgb(33 24 18 / 16%)", "purpose": "Action menus, feedback notes, and opaque dialogs in light mode." },
+      { "name": "dark-overlay", "value": "0 20px 56px rgb(0 0 0 / 38%)", "purpose": "Action menus, feedback notes, and opaque dialogs in dark mode." },
+      { "name": "editor-edge", "value": "-16px 0 48px rgb(0 0 0 / 18%)", "purpose": "Desktop editor pane separation; mobile removes it." }
+    ],
+    "motion": [
+      { "name": "hover-transition", "value": "150ms ease-out", "purpose": "Background, text-color, and border-color state changes." },
+      { "name": "reduced-motion", "value": "scroll-behavior: auto; transition: none; animation: none", "purpose": "Reduced-motion preference for every Topic Stream descendant." }
+    ],
+    "breakpoints": [
+      { "name": "single-pane-leaf", "value": "48em" }
+    ],
+    "focus": {
+      "width": "2px",
+      "offset": "3px",
+      "color": "var(--topic-stream-accent)"
+    },
+    "touchTarget": "44px"
+  },
+  "components": [
+    {
+      "name": "Primary navigation",
+      "kind": "nav",
+      "refersTo": "primary-navigation-selected",
+      "description": "The active reading section uses an ink-filled tab; secondary sections remain quiet. At constrained widths, complete tab controls wrap while labels stay whole.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Reading sections\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">Feed</button><button role=\"tab\" aria-selected=\"false\">Digests</button><button role=\"tab\" aria-selected=\"false\">Search</button></nav>",
+      "css": ".ds-nav{display:flex;flex-wrap:wrap;max-width:100%;gap:6px}.ds-nav button{font:inherit;font-size:.875em;min-height:40px;padding:9px 16px;border:0;border-radius:13px;background:transparent;color:var(--topic-stream-muted,#68615c);white-space:nowrap;cursor:pointer;transition:background-color 150ms ease-out,color 150ms ease-out}.ds-nav button:hover{background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f)}.ds-nav button[aria-selected=\"true\"]{background:var(--topic-stream-ink,#24211f);color:var(--topic-stream-panel,#fff);font-weight:550}.ds-nav button:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "A named toolbar action with a quiet field surface and a pressed peach state.",
+      "html": "<button class=\"ds-icon\" title=\"Settings\" aria-label=\"Settings\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M10 2h4l.6 3 2 .9 2.7-1 2 3.4-2.2 2v3.4l2.2 2-2 3.4-2.7-1-2 .9-.6 3h-4l-.6-3-2-.9-2.7 1-2-3.4 2.2-2V8.5l-2.2-2 2-3.4 2.7 1 2-.9Z\"/></svg></button>",
+      "css": ".ds-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;min-width:40px;min-height:40px;padding:10px;border:0;border-radius:13px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-muted,#68615c);cursor:pointer;transition:background-color 150ms ease-out,color 150ms ease-out}.ds-icon:hover{background:var(--topic-stream-hover,#e9e5e0);color:var(--topic-stream-ink,#24211f)}.ds-icon[aria-pressed=\"true\"]{background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13}.ds-icon:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}@media(pointer:coarse){.ds-icon{width:44px;min-width:44px;min-height:44px}}"
+    },
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "primary-action",
+      "description": "One clear peach action for save, add, or send operations.",
+      "html": "<button class=\"ds-primary\">Add source</button>",
+      "css": ".ds-primary{font:inherit;min-height:42px;padding:10px 18px;border:0;border-radius:12px;background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13;font-size:.875em;font-weight:550;cursor:pointer;transition:background-color 150ms ease-out}.ds-primary:hover{background:var(--topic-stream-accent-hover,#f7c5a6)}.ds-primary:disabled{opacity:.45;cursor:default}.ds-primary:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "secondary-action",
+      "description": "A quiet text action for retry and other labelled secondary operations.",
+      "html": "<button class=\"ds-secondary\">Try again</button>",
+      "css": ".ds-secondary{font:inherit;min-height:40px;padding:10px 16px;border:0;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);cursor:pointer;transition:background-color 150ms ease-out}.ds-secondary:hover{background:var(--topic-stream-hover,#e9e5e0)}.ds-secondary:disabled{opacity:.45;cursor:default}.ds-secondary:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Selected reading row",
+      "kind": "custom",
+      "refersTo": "selected-reading-row",
+      "description": "Text-led selection uses peach fill and a dedicated readable excerpt color.",
+      "html": "<button class=\"ds-row\" aria-current=\"true\"><strong>A closer look at retrieval systems</strong><span>Notes on practical engineering tradeoffs.</span></button>",
+      "css": ".ds-row{display:block;width:100%;padding:18px 16px;border:0;border-radius:17px;text-align:left;font:inherit;background:var(--topic-stream-selection,#f2b38a);color:#241a13;cursor:pointer;transition:background-color 150ms ease-out}.ds-row strong{display:block;font-weight:550;line-height:1.45;letter-spacing:-.015em}.ds-row span{display:block;margin-top:10px;color:#493124;font-size:.8125em;line-height:1.6}.ds-row:hover{background:var(--topic-stream-accent-hover,#f7c5a6)}.ds-row:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Feed header controls",
+      "kind": "custom",
+      "description": "A compact Feed heading, searchable Topic scope, refresh action, and persisted All/Unread filter; the header gains only a light blur while its list is scrolled. The refresh SVG is Lucide refresh-cw (ISC; attribution retained in production IconButton.tsx): https://github.com/lucide-icons/lucide/blob/main/icons/refresh-cw.svg",
+      "html": "<div class=\"ds-feed-list\" data-scrolled=\"true\"><header class=\"ds-feed-header\"><div class=\"ds-feed-heading\"><h2>Feed</h2><button class=\"ds-topic\" aria-haspopup=\"dialog\">All Topics<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div><button class=\"ds-refresh\" aria-label=\"Refresh feed\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5\"/></svg></button></header><div class=\"ds-filter\" role=\"group\" aria-label=\"Show items\"><button aria-pressed=\"true\">All</button><button aria-pressed=\"false\">Unread</button></div></div>",
+      "css": ".ds-feed-list{position:relative;overflow:auto;background:var(--topic-stream-panel,#fff)}.ds-feed-header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 10px 32px;background:transparent}.ds-feed-header:before{content:\"\";position:absolute;inset:-24px 0 0;z-index:-1;background:var(--topic-stream-panel,#fff)}.ds-feed-heading{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.ds-feed-heading h2{margin:0;font-size:1.25em}.ds-topic,.ds-refresh,.ds-filter button{border:0;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit;min-height:40px;padding:8px 12px;cursor:pointer}.ds-topic{display:flex;align-items:center;gap:8px;max-width:15em;font-size:.8125em}.ds-refresh{width:40px;padding:10px;color:var(--topic-stream-muted,#68615c)}.ds-filter{display:flex;gap:4px;margin:0 10px 8px}.ds-filter button{border-radius:10px;background:transparent;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-filter button[aria-pressed=\"true\"]{background:var(--topic-stream-accent-soft,#f8e8dc);color:var(--topic-stream-accent,#99562e)}.ds-topic:hover,.ds-refresh:hover,.ds-filter button:hover{background:var(--topic-stream-hover,#e9e5e0)}@supports((backdrop-filter:blur(12px)) or (-webkit-backdrop-filter:blur(12px))){.ds-feed-list[data-scrolled=\"true\"] .ds-feed-header:before{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}}.ds-topic:focus-visible,.ds-refresh:focus-visible,.ds-filter button:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "A borderless host-compatible field with a shared focus treatment.",
+      "html": "<label class=\"ds-field\"><span>Source name</span><input placeholder=\"Engineering notes\"/></label>",
+      "css": ".ds-field{display:grid;gap:9px;font:inherit;font-size:.8125em;color:var(--topic-stream-muted,#68615c)}.ds-field input{font:inherit;font-size:var(--font-text-size,16px);min-width:0;min-height:44px;padding:12px 14px;border:0;border-radius:13px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);caret-color:var(--topic-stream-accent,#99562e)}.ds-field input::placeholder{color:var(--topic-stream-muted,#68615c);opacity:1}.ds-field input:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Anchored feedback menu",
+      "kind": "custom",
+      "refersTo": "action-menu",
+      "description": "Portalled ellipsis menu that owns immediate rating, reading, original-link, visibility, Topic-correction, details, and conditional note actions.",
+      "html": "<div class=\"ds-menu\" role=\"menu\" aria-label=\"Actions for the selected Item\"><button role=\"menuitemcheckbox\" aria-checked=\"true\"><span>Useful</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></button><button role=\"menuitemcheckbox\" aria-checked=\"false\"><span>Not for me</span></button><button role=\"menuitem\">Why this item</button><button role=\"menuitem\">Open original</button><button role=\"menuitem\">Mark as unread</button><button role=\"menuitem\">Wrong topic: Retrieval</button><button class=\"ds-menu-separated\" role=\"menuitem\">Edit note</button><button role=\"menuitem\">Hide from all Feeds</button></div>",
+      "css": ".ds-menu{width:208px;max-width:calc(100vw - 16px);padding:6px;border:0;border-radius:15px;background:var(--topic-stream-panel,#fff);box-shadow:0 16px 48px rgb(33 24 18 / 16%);font:14px var(--font-interface,system-ui,sans-serif)}.ds-menu button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:38px;padding:9px 12px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer;transition:background-color 150ms ease-out}.ds-menu button:hover,.ds-menu button:focus-visible{outline:none;background:var(--topic-stream-accent-soft,#f8e8dc)}.ds-menu .ds-menu-separated{margin-top:6px}.ds-menu:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}@supports((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){.ds-menu{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px)}}"
+    },
+    {
+      "name": "Feedback note panel",
+      "kind": "custom",
+      "refersTo": "feedback-note",
+      "description": "Nonmodal anchored note editor opened after a rating; Not for me can reveal a transient Topic correction while sending stays explicit and local states remain readable.",
+      "html": "<div class=\"ds-note\" role=\"dialog\" aria-label=\"Feedback note\"><div class=\"ds-note-header\"><h2>Not for me</h2><button class=\"ds-close\" aria-label=\"Close note\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button></div><label class=\"ds-comment\"><span>Optional note for future recommendations</span><textarea rows=\"3\" placeholder=\"What should we know?\"></textarea></label><div class=\"ds-note-footer\"><span class=\"ds-status\" role=\"status\"></span><button class=\"ds-correction\" type=\"button\">Wrong topic: Retrieval</button><button class=\"ds-send\" aria-label=\"Send note\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13\"/></svg></button></div></div>",
+      "css": ".ds-note{width:360px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:20px;border-radius:18px;background:var(--topic-stream-panel,#fff);box-shadow:0 16px 48px rgb(33 24 18 / 16%);font:14px var(--font-interface,system-ui,sans-serif);color:var(--topic-stream-ink,#24211f)}.ds-note-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.ds-note h2{margin:0;font-size:1em}.ds-close,.ds-send{display:inline-flex;align-items:center;justify-content:center;width:40px;min-width:40px;min-height:40px;padding:10px;border:0;border-radius:13px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-muted,#68615c);cursor:pointer;transition:background-color 150ms ease-out,color 150ms ease-out}.ds-close:hover{background:var(--topic-stream-hover,#e9e5e0);color:var(--topic-stream-ink,#24211f)}.ds-comment{display:grid;gap:8px;color:var(--topic-stream-muted,#68615c)}.ds-comment textarea{width:100%;min-width:0;resize:vertical;padding:14px;border:0;border-radius:14px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:var(--font-text-size,16px) var(--font-interface,system-ui,sans-serif);line-height:1.6;caret-color:var(--topic-stream-accent,#99562e)}.ds-note-footer{display:flex;align-items:center;gap:12px;margin-top:12px}.ds-status{min-height:1em;flex:1;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-correction{padding:6px 0;min-height:40px;border:0;background:transparent;color:var(--topic-stream-accent,#99562e);text-align:left;white-space:normal}.ds-send{background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13}.ds-send:hover{background:var(--topic-stream-accent-hover,#f7c5a6)}.ds-close:focus-visible,.ds-send:focus-visible,.ds-correction:focus-visible,.ds-comment textarea:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}@supports((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){.ds-note{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px)}}"
+    },
+    {
+      "name": "Search filter surface",
+      "kind": "custom",
+      "description": "A portalled, anchored filter form for Topic, Source, and UTC publication bounds with explicit Apply and clear actions.",
+      "html": "<div class=\"ds-search-filter\" role=\"dialog\" aria-label=\"Search filters\"><h2>Search filters</h2><label>Topic<select><option>All Topics</option></select></label><label>Source<select><option>All Sources</option></select></label><label>Published from<input type=\"date\"></label><label>Published through<input type=\"date\"></label><p>Publication dates use UTC.</p><div class=\"ds-search-actions\"><button type=\"button\">Clear filters</button><button type=\"button\" class=\"ds-search-apply\">Apply filters</button></div></div>",
+      "css": ".ds-search-filter{width:360px;max-width:calc(100vw - 16px);padding:20px;border-radius:18px;background:var(--topic-stream-panel,#fff);box-shadow:var(--topic-stream-shadow,0 16px 48px rgb(33 24 18 / 16%));font:14px var(--font-interface,system-ui,sans-serif);color:var(--topic-stream-ink,#24211f)}.ds-search-filter h2{margin:0 0 16px;font-size:1.25em}.ds-search-filter label{display:grid;gap:9px;margin-top:16px;color:var(--topic-stream-muted,#68615c)}.ds-search-filter select,.ds-search-filter input{min-height:44px;padding:12px 14px;border:0;border-radius:13px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit}.ds-search-filter p{color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-search-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:20px}.ds-search-actions button{min-height:40px;padding:10px 16px;border:0;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit}.ds-search-actions .ds-search-apply{background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13}.ds-search-filter button:focus-visible,.ds-search-filter input:focus-visible,.ds-search-filter select:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}@supports((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){.ds-search-filter{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px)}}"
+    },
+    {
+      "name": "Reader image consent placeholder",
+      "kind": "custom",
+      "description": "A matte, labelled placeholder that asks before loading every known image in the current Item.",
+      "html": "<button class=\"ds-image-placeholder\" type=\"button\"><span>Article image</span><small>Load all images in this Item</small></button>",
+      "css": ".ds-image-placeholder{display:block;width:100%;min-height:96px;padding:24px 20px;border:0;border-radius:14px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:14px var(--font-interface,system-ui,sans-serif);text-align:left;cursor:pointer}.ds-image-placeholder small{display:block;margin-top:6px;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-image-placeholder:hover{background:var(--topic-stream-hover,#e9e5e0)}.ds-image-placeholder:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "AI summary disclosure",
+      "kind": "custom",
+      "description": "An explicit, exact-version Item disclosure with readable pending, ready, recovery, and retry states.",
+      "html": "<section class=\"ds-summary\" role=\"group\" aria-label=\"AI summary\"><h2>AI summary</h2><p class=\"ds-summary-status\" role=\"status\">Summary is being prepared.</p><button type=\"button\">Check summary status</button></section>",
+      "css": ".ds-summary{padding:16px;margin:12px 0;color:var(--topic-stream-ink,#24211f);font:14px var(--font-interface,system-ui,sans-serif);font-size:.9375em;line-height:1.65}.ds-summary h2{margin:0 0 12px;font-size:1em}.ds-summary-status{color:var(--topic-stream-muted,#68615c)}.ds-summary button{min-height:40px;padding:10px 16px;border:0;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit;cursor:pointer}.ds-summary button:hover{background:var(--topic-stream-hover,#e9e5e0)}.ds-summary button:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Digest archive row",
+      "kind": "custom",
+      "refersTo": "archive-row",
+      "description": "A text-led saved Issue row with definition/date metadata, partial status, and an unseen New badge.",
+      "html": "<button class=\"ds-archive-row\"><span class=\"ds-archive-title\">Weekly retrieval notes</span><span class=\"ds-archive-meta\"><span>Research</span><time>Oct 28, 2026</time><span class=\"ds-new\">New</span></span></button>",
+      "css": ".ds-archive-row{display:block;width:100%;padding:18px 16px;border:0;border-radius:17px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);text-align:left;font:inherit;cursor:pointer;transition:background-color 150ms ease-out}.ds-archive-title{display:block;font-weight:550;line-height:1.45;letter-spacing:-.015em}.ds-archive-meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:12px;color:var(--topic-stream-muted,#68615c);font-size:.8125em;line-height:1.5}.ds-new{color:var(--topic-stream-accent,#99562e)}.ds-archive-row:hover{background:var(--topic-stream-hover,#e9e5e0)}.ds-archive-row:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Selected Issue contents item",
+      "kind": "custom",
+      "refersTo": "issue-contents-item-selected",
+      "description": "The compact contents list marks the captured Item currently open in the Reader with peach selection.",
+      "html": "<button class=\"ds-contents-item\" aria-current=\"true\">Why retrieval systems fail quietly</button>",
+      "css": ".ds-contents-item{display:block;width:100%;min-height:44px;margin:4px 0;padding:12px;border:0;border-radius:12px;background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13;text-align:left;font:inherit;cursor:pointer}.ds-contents-item:hover{background:var(--topic-stream-accent-hover,#f7c5a6)}.ds-contents-item:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}"
+    },
+    {
+      "name": "Shared Job progress",
+      "kind": "custom",
+      "refersTo": "job-progress-fill",
+      "description": "Phase and initial-cohort progress shared by Digest Builds, Settings, and Task Center; ordinary failed/cancelled Jobs retain Retry, while model-preparation Retry additionally requires a verified current, eligible target. Model recovery, saved-result recovery, and status authority stay in the shared Job model.",
+      "html": "<div class=\"ds-job-progress\" data-status=\"running\"><p role=\"status\">Running</p><div class=\"ds-progress-caption\"><span>Indexing initial Items</span><span>8 / 12 Items</span></div><progress max=\"12\" value=\"8\" aria-label=\"Initial Item cohort\"></progress></div>",
+      "css": ".ds-job-progress{font:14px var(--font-interface,system-ui,sans-serif;color:var(--topic-stream-ink,#24211f)}.ds-job-progress p{margin:4px 0;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-progress-caption{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin-top:8px;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-job-progress progress{appearance:none;width:100%;height:3px;border:0;border-radius:0;background:var(--topic-stream-line,#dedbd7);color:var(--topic-stream-accent,#99562e);accent-color:var(--topic-stream-accent,#99562e)}.ds-job-progress progress::-webkit-progress-bar{background:var(--topic-stream-line,#dedbd7)}.ds-job-progress progress::-webkit-progress-value{background:var(--topic-stream-accent,#99562e)}.ds-job-progress progress::-moz-progress-bar{background:var(--topic-stream-accent,#99562e)}.ds-job-progress:is([data-status=\"dead\"],[data-status=\"cancelled\"]) progress::-webkit-progress-value{background:var(--topic-stream-muted,#68615c)}.ds-job-progress:is([data-status=\"dead\"],[data-status=\"cancelled\"]) progress::-moz-progress-bar{background:var(--topic-stream-muted,#68615c)}"
+    },
+    {
+      "name": "Snapshot Save form",
+      "kind": "custom",
+      "refersTo": "snapshot-dialog",
+      "description": "A native protected-focus Save to vault form for normalized paths, explicit content/image choices, mixed-result consent, and contextual recovery.",
+      "html": "<dialog open class=\"ds-snapshot\" aria-label=\"Save to vault\"><h2>Save to vault</h2><p class=\"ds-snapshot-title\">A closer look at retrieval systems</p><label class=\"ds-snapshot-field\">Folder<input value=\"Reading/Weekly\"/></label><label class=\"ds-snapshot-field\">Filename<input value=\"A closer look at retrieval systems\"/></label><fieldset class=\"ds-snapshot-choice\"><legend>Content</legend><label><input type=\"radio\" checked name=\"content\"/>Compact</label><label><input type=\"radio\" name=\"content\"/>Full</label></fieldset><p class=\"ds-snapshot-hint\">Excerpts, source links and ready AI summaries.</p><div class=\"ds-snapshot-actions\"><button type=\"button\">Cancel</button><button class=\"ds-snapshot-save\" type=\"button\">Save</button></div></dialog>",
+      "css": ".ds-snapshot{width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:28px;border-radius:22px;background:var(--topic-stream-panel,#fff);color:var(--topic-stream-ink,#24211f);font:14px var(--font-interface,system-ui,sans-serif);box-shadow:var(--topic-stream-shadow,0 16px 48px rgb(33 24 18 / 16%))}.ds-snapshot h2{margin:0 0 8px;font-size:1.375em;line-height:1.3}.ds-snapshot-title{margin:0 0 28px;color:var(--topic-stream-muted,#68615c);font-size:.875em}.ds-snapshot-field{display:grid;gap:9px;margin-top:16px;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-snapshot-field input{min-width:0;min-height:44px;padding:12px 14px;border:0;border-radius:13px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit;font-size:var(--font-text-size,16px)}.ds-snapshot-choice{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:20px 0 0;border:0}.ds-snapshot-choice legend{width:100%;margin-bottom:2px;color:var(--topic-stream-muted,#68615c);font-size:.8125em}.ds-snapshot-choice label{display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-muted,#68615c)}.ds-snapshot-choice input{appearance:auto;width:16px;height:16px;min-height:16px;flex:0 0 16px;margin:0;accent-color:var(--topic-stream-accent,#99562e)}.ds-snapshot-hint{color:var(--topic-stream-muted,#68615c);line-height:1.65}.ds-snapshot-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.ds-snapshot-actions button{min-height:40px;padding:10px 16px;border:0;border-radius:12px;background:var(--topic-stream-field,#f0efed);color:var(--topic-stream-ink,#24211f);font:inherit}.ds-snapshot-actions .ds-snapshot-save{background:var(--topic-stream-accent-fill,#f2b38a);color:#241a13}.ds-snapshot button:focus-visible,.ds-snapshot input:focus-visible{outline:2px solid var(--topic-stream-accent,#99562e);outline-offset:3px}@supports((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){.ds-snapshot{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px)}}"
+    },
+    {
+      "name": "Settings editor pane",
+      "kind": "custom",
+      "description": "A right-anchored desktop editor that becomes a full-width mobile surface.",
+      "html": "<aside class=\"ds-editor\" aria-label=\"Edit source\"><h2>Edit source</h2><p>Keep the resource context visible while editing.</p><button class=\"ds-primary\">Save</button></aside>",
+      "css": ".ds-editor{width:min(560px,100%);padding:28px;border-radius:22px;background:var(--topic-stream-panel,#fff);box-shadow:-16px 0 48px rgb(0 0 0 / 18%);color:var(--topic-stream-ink,#24211f);font:inherit}.ds-editor p{color:var(--topic-stream-muted,#68615c);line-height:1.65}@supports((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){.ds-editor{background:var(--topic-stream-glass,rgb(255 255 255 / 86%));-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px)}}@media(max-width:48em){.ds-editor{width:100%;padding:24px 16px;box-shadow:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Composed Tactile Reading Workspace",
+    "overview": "Topic Stream is a calm, direct control surface for a personal information-retrieval system. Its\nvisual authority is the user-pinned reference at\n`.artifacts/storybook-review/design-reference.png`, sourced from the approved\n[Dribbble image](https://cdn.dribbble.com/userupload/12942608/file/original-4c287785698d505006c3f207a6b77987.png?resize=2048x1536&vertical=center).\nThe implementation translates that reference into black and charcoal work areas, lighter matte\nfields, clear host typography, rounded work zones, and a soft peach action language. The reference\nis a direction anchor, not a pixel-bound asset or a generated concept.\n\nThe production shell is code-led and retains Obsidian's interface and reading typography. Real\nConnectedShell and production screen compositions render in Storybook; external services and data\nare mocked at their ports, and English/Spanish fixtures are synthetic demonstrations. The shipped\nslice includes the Feed's independent All Topics/Topic traversals, persisted All/Unread filtering,\ndirect-title reading and explicit Item details, immediate feedback with optional notes, visibility,\nand Topic corrections, the quiet Search + Filters flow, and the canonical Reader with full-body\nMarkdown, consent-gated images, and an explicit shared AI Summary disclosure. Sources, Topics,\nDigest definitions, Workspace, Preferences, and Status remain available as management surfaces.\nThe Reader preserves title-first hierarchy and Item-scoped notices; Search keeps text-led rows,\nanchored filters, UTC date bounds, 20-result pages, and a 100-result session cap. UI 08 also ships\nthe connected Digest archive, saved Edition with compact contents and captured Reader, saved-definition\nBuild and results, device-scoped New Issue badges, and the Task Center's shared Job progress,\nCancel/Retry actions, and model-recovery context. Device-scoped readiness establishes a baseline from\nthe first successful unfiltered archive head once per device/backend/Workspace; subsequent mount or\nmanual REST reads reconstruct unopened post-baseline Issues without emitting catch-up Notices. Live\nNotice/event consumers share a view-owned browser SSE transport and deduplicate across views.\nReconnect reconciles REST without publication, generation or global offline chrome; failed streams\nretain content and explicit Refresh. UI 09 also ships one native protected-focus Save to vault form from\nItem and captured Digest Item overflow menus plus the whole-Issue actions menu. It normalizes paths,\nremembers Compact/Full and Full-only image choices per vault, requires explicit mixed-Digest consent,\nand keeps validation, pending, and write errors contextual. Ready matching AI annotations are\ncaptured without generating, waiting, retrying, or mirroring later work; safe bounded Vault/FileManager\nwrites preserve links, sanitize SVG, reject overwrites, and roll back only newly created attachments.\n",
+    "keyCharacteristics": [
+      "Black/charcoal work areas with pale light-mode equivalents and no decorative gradients.",
+      "Matte fields and rounded work zones, with translucent blur reserved for anchored menus, note panels, editor panes, and the Feed header while its list is scrolled.",
+      "A soft peach selection and action color (`#F2B38A`) with a lighter hover (`#F7C5A6`).",
+      "Host-native interface and reading type, a restrained spacing rhythm, and equal light/dark care.",
+      "One clear action per view; secondary operations stay in real anchored menus.",
+      "Title-first Reader content with bounded prose, local scrolling for code/tables, and quiet source headings beneath the Item title.",
+      "Consent-gated matte image placeholders and local recovery states; AI Summary remains explicit, version-bound, and readable when ready.",
+      "View-owned browser Fetch/ReadableStream SSE keeps invalidations advisory, reconciles REST on reconnect, and retains loaded content without a persistent offline banner.",
+      "Primary navigation wraps complete controls, while Settings headings/resource actions wrap as groups and narrow resource panels stretch to the available width.",
+      "Digest archive rows, Edition sections, compact contents, and captured Reader preserve the same text-led hierarchy while New badges identify unseen saved Issues.",
+      "Task Center keeps Job status, progress, history facts, Cancel/Retry, and model recovery in the shared shell rather than turning background work into a dashboard.",
+      "Snapshot saves use a native peach form for normalized paths, explicit content/image choices, mixed-result consent, and contextual recovery while restoring focus to the invoking overflow action."
+    ],
+    "rules": [
+      {
+        "name": "The Purposeful Peach Rule",
+        "body": "Peach marks a current action, selected row, checked state, or focus; it is not a decorative wash across every title or surface. Host-native semantic warning colors may still appear for errors.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Focal Title Rule",
+        "body": "Give the current page or opened Item one clear title. Supporting metadata and controls stay quieter; hierarchy does not require inventing an editorial headline or an unsupported intelligence claim.",
+        "section": "typography"
+      },
+      {
+        "name": "The Real Overlay Rule",
+        "body": "Use depth to clarify an anchored menu, note, dialog, or editor pane. Do not add shadows around every reading row or turn a matte field into a floating card.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Status-Authority Rule",
+        "body": "Treat the Job status label as the outcome; the progress bar only describes the observed initial cohort. Never infer success from a full bar or a count alone.",
+        "section": "components"
+      },
+      {
+        "name": "The Protected Save Rule",
+        "body": "Snapshot Save stays an explicit, native, focus-protected action: normalize and reject paths before writing, preserve captured content, and keep mixed consent, pending, and failures visible without generating or waiting for AI work.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "derive new surfaces from the black/charcoal work-area hierarchy and the light-mode pale equivalent; keep fields matte and readable.",
+      "reserve `#F2B38A` and `#F7C5A6` for action, selection, checked/pressed, hover, and focus states; retain the light-theme accent ink where contrast requires it.",
+      "preserve host typography, theme switching, keyboard focus, `44px` coarse-pointer targets, and the `48em` leaf breakpoint.",
+      "keep menus, filters, and note panels anchored to their trigger, with panel fallback colors when blur is unavailable and `blur(28px)` only when supported.",
+      "keep the Feed header opaque at rest and use the existing glass token with `blur(12px)` only while its list is scrolled; preserve the opaque fallback and the `32px` header clearance.",
+      "preserve the Reader's title-first hierarchy, `70ch` prose measure, local code/table scroll, consent-gated images, and exact-version explicit summary disclosure.",
+      "keep Search text-led with quiet Search + Filters controls, UTC date semantics, 20-result pages, and a 100-result session limit.",
+      "keep Digest archive and Edition surfaces text-led, preserve compact contents and captured Reader return/focus, and show New Issue badges only for unseen device-scoped saved Issues.",
+      "keep Task Center and Settings on shared Job queries; use peach normal progress, muted failed/cancelled history, and explicit Cancel/Retry/model recovery actions.",
+      "keep view-owned browser Fetch/ReadableStream SSE advisory: bind reconnect and pop-out lifecycle to the active view, reconcile REST authoritatively, and retain loaded content plus explicit Refresh when streaming is unavailable.",
+      "keep Snapshot saves portable and explicit: normalize paths, reject existing destinations, preserve captured content, honor image budgets and SVG sanitation, and restore focus to the invoking action.",
+      "keep ready AI annotations source-version-bound in Compact or Full without generating, waiting, retrying, or mirroring later work; show mixed consent and Excerpt only labels when needed.",
+      "keep one clear action per view and use explicit text for unfamiliar distinctions.",
+      "keep Storybook evidence connected to production components, mocking only external service ports and using synthetic English/Spanish demonstration data."
+    ],
+    "donts": [
+      "invent a competing palette or direction, or treat the pinned reference as a source of random generated comps.",
+      "add decorative gradients, glowing edges, ornamental glass, nested card borders, or shadows around every row.",
+      "replace real anchored menus with a permanent inline Add a note control, a modal note editor, or a row of outlined secondary actions.",
+      "claim physical mobile-device parity from responsive frames, browser dependency checks or desktop host tests; browser Fetch/ReadableStream SSE and native desktop main/pop-out lifecycle are shipped and verified, while physical iOS/Android streaming remains untested.",
+      "silently save an excerpt under Full, show Full-only image controls when an individual Item has no full text, overwrite an existing path, or imply that linked/failed images were stored locally.",
+      "trigger Summary generation, waiting, Retry, or late note mutation from Snapshot Save; capture only a ready annotation matching the saved Item input version.",
+      "infer Job success from `N / N`; preserve separate peach normal and muted failed/cancelled progress history fills with the status label as the authority.",
+      "fetch thumbnails before image consent, turn a ready summary into a generated headline, or display summary text from a different source version.",
+      "claim excerpts are generated summaries or add unsupported intelligence, KPI, ETA, or operator-tuning UI.",
+      "use the exploratory raster as a pixel-bound asset; keep the implementation code-led and preserve its provenance."
+    ]
+  }
+}

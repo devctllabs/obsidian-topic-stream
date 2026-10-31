@@ -49,6 +49,9 @@ Run **Plugin release** after plugin metadata has been prepared and reviewed. The
 the dispatch SHA, forces plugin and contract checks, verifies that `package.json`, `manifest.json`
 and `versions.json` agree, builds the plugin and uploads `main.js`, `manifest.json` and
 `styles.css` to a draft `X.Y.Z` Release. It uses `latest=true` for the plugin release.
+The downloaded asset manifest is compared byte-for-byte with the validated source manifest.
+Its reused CI gate includes generated types, mobile dependency boundaries, Storybook and the
+production-bundle headless Obsidian flows; see [plugin quality](plugin-quality.md).
 An existing tag or draft/Release is rejected; the workflow does not resume an incomplete plugin
 Release.
 

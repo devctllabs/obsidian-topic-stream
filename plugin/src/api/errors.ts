@@ -1,7 +1,6 @@
-export interface FieldIssue {
-  field: string;
-  message: string;
-}
+import type { Schema } from "./contracts";
+
+export type FieldIssue = NonNullable<Schema<"Problem">["errors"]>[number];
 
 interface PublicProblem {
   type: string;
@@ -22,13 +21,17 @@ export class ApiError extends Error {
   public readonly projectionRevision: string | null;
 
   public constructor(public readonly status: number, problem: PublicProblem | null) {
-    super(problem?.detail ?? problem?.title ?? `Topic Stream could not complete the request (HTTP ${status}).`);
+    const value = problem ?? {
+      type: null, code: null, issues: [], canonicalCommitted: false, projectionRevision: null,
+      detail: null, title: `Topic Stream could not complete the request (HTTP ${status}).`
+    };
+    super(value.detail ?? value.title);
     this.name = "ApiError";
-    this.type = problem?.type ?? null;
-    this.code = problem?.code ?? null;
-    this.issues = problem?.issues ?? [];
-    this.canonicalCommitted = problem?.canonicalCommitted ?? false;
-    this.projectionRevision = problem?.projectionRevision ?? null;
+    this.type = value.type;
+    this.code = value.code;
+    this.issues = value.issues;
+    this.canonicalCommitted = value.canonicalCommitted;
+    this.projectionRevision = value.projectionRevision;
   }
 }
 
@@ -42,14 +45,8 @@ export function httpError(status: number, text: string): ApiError {
 }
 
 function parseProblem(value: unknown, status: number): PublicProblem | null {
-  if (!isRecord(value) || value.status !== status || typeof value.type !== "string" || value.type.trim() === "" ||
-      typeof value.title !== "string" || value.title.trim() === "") {
-    return null;
-  }
-  if ((value.detail !== undefined && typeof value.detail !== "string") ||
-      (value.code !== undefined && typeof value.code !== "string")) {
-    return null;
-  }
+  if (!isRecord(value) || !hasProblemIdentity(value, status)) return null;
+  if (!['detail', 'code'].every((key) => value[key] === undefined || typeof value[key] === "string")) return null;
   const issues = parseIssues(value.errors);
   if (issues === null) return null;
   return {
@@ -61,6 +58,11 @@ function parseProblem(value: unknown, status: number): PublicProblem | null {
     canonicalCommitted: value.code === "projection_pending" && value.canonicalCommitted === true,
     projectionRevision: typeof value.projectionRevision === "string" ? value.projectionRevision : null
   };
+}
+
+function hasProblemIdentity(value: Record<string, unknown>, status: number): value is Record<string, unknown> & { type: string; title: string } {
+  return value.status === status && typeof value.type === "string" && value.type.trim() !== "" &&
+    typeof value.title === "string" && value.title.trim() !== "";
 }
 
 function parseIssues(value: unknown): FieldIssue[] | null {

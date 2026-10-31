@@ -31,6 +31,7 @@ coverage.out
 *.tmp
 __pycache__/
 .artifacts/
+.impeccable/review/
 
 # Local product issues
 .scratch/

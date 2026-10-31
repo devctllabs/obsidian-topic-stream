@@ -1,8 +1,9 @@
 # Item AI summaries
 
 An Item AI Summary is an optional generated annotation, separate from an ordinary excerpt.
-The backend provides this capability through its API; Obsidian summary controls and Vault Snapshot
-writes are not yet available in the current plugin.
+The backend provides this capability through its API. The Obsidian plugin exposes explicit
+summary controls in Reader, Item menus and saved editions. Explicit Vault Snapshots include ready
+exact-version annotations without generating, retrying or waiting for summaries.
 
 ## Explicit requests and supported content
 

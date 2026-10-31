@@ -53,7 +53,7 @@ func TestNewAPIAllowsWorkerOnlyRuntimeWithoutWorkspaceID(t *testing.T) {
 	_, err := deps.NewAPI(t.Context(), generated.Config{
 		Bootstrap: generated.BootstrapConfig{BootstrapEmbeddingEndpoint: "http://fixture.example/v1", BootstrapEmbeddingModel: "synthetic", BootstrapEmbeddingDimensions: 3},
 		DBPrimary: generated.DBPrimaryConfig{Kind: "postgres", PostgresDSN: "postgres://unreachable.invalid/topic_stream"},
-		HTTP:      generated.HTTPConfig{Enabled: false},
+		HTTP:      generated.HTTPConfig{Enabled: false, CorsAllowedOrigins: "*"},
 		Runtime: generated.RuntimeConfig{EmbeddingBatchSize: 8, EmbeddingBatchInputBytes: 1 << 20, EmbeddingConcurrency: 1,
 			SchedulersEnabled: false, WorkersEnabled: true,
 			WorkerFetchConcurrency: 4, WorkerFetchPerHostConcurrency: 1,
@@ -63,4 +63,22 @@ func TestNewAPIAllowsWorkerOnlyRuntimeWithoutWorkspaceID(t *testing.T) {
 
 	require.Error(t, err)
 	require.NotContains(t, err.Error(), "workspace ID")
+	require.NotContains(t, err.Error(), "CORS")
+}
+
+func TestNewAPIValidatesCORSBeforeAcquiringResources(t *testing.T) {
+	for _, origin := range []string{"*", "https://*.example.com", "null", "https://example.com/path"} {
+		t.Run(origin, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
+			defer cancel()
+			_, err := deps.NewAPI(ctx, generated.Config{
+				Bootstrap: generated.BootstrapConfig{BootstrapEmbeddingEndpoint: "http://fixture/v1", BootstrapEmbeddingModel: "fixture", BootstrapEmbeddingDimensions: 3},
+				DBPrimary: generated.DBPrimaryConfig{Kind: "postgres", PostgresDSN: "postgres://unreachable.invalid/test"},
+				HTTP:      generated.HTTPConfig{Enabled: true, Address: "127.0.0.1:0", CorsAllowedOrigins: origin},
+				Runtime:   generated.RuntimeConfig{WorkspaceId: uuid.NewString(), EmbeddingBatchSize: 8, EmbeddingBatchInputBytes: 1 << 20, EmbeddingConcurrency: 1},
+			}, "test")
+			require.ErrorContains(t, err, "CORS")
+			require.NotContains(t, err.Error(), "connect")
+		})
+	}
 }

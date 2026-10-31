@@ -1,0 +1,156 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { TopicEditor, type TopicEditorProps } from "./TopicEditor";
+import { SourceActions } from "./source-actions";
+import { ShellNavigation } from "../shell/navigation";
+import { interactiveScenario } from "../../test/storybook/interactive-scenario";
+import { fixtureId, makeSource, makeTopic } from "../../test/storybook/fixtures";
+import { FixtureScenario } from "../../test/storybook/scenario";
+
+function editorArgs() {
+  const client = interactiveScenario();
+  return { topic: null, client, sourceActions: new SourceActions(client), navigation: new ShellNavigation({ screen: "settings" }), onSave: fn<TopicEditorProps["onSave"]>(async () => undefined), onCancel: fn() };
+}
+const meta = { title: "Features/Settings/Components/TopicEditor", component: TopicEditor, args: editorArgs() } satisfies Meta<typeof TopicEditor>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const Loaded: Story = { play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Engineering");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Include" }), "Practical retrieval systems");
+  await userEvent.click(canvas.getByRole("button", { name: "Create topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith({ name: "Engineering", include: "Practical retrieval systems", exclude: "", sourceIds: [], itemKinds: [], mode: "ordinary", enabled: true });
+} };
+export const RestrictedScope: Story = { args: editorArgs(), play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Engineering");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(await canvas.findByRole("checkbox", { name: "Source 1" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Back to topic" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Create topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith(expect.objectContaining({ sourceIds: [fixtureId(100)] }));
+} };
+export const Advanced: Story = { args: editorArgs(), play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Research");
+  await userEvent.click(canvas.getByText("Advanced"));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Exclude" }), "Beginner tutorials");
+  await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Matching" }), "strict");
+  await userEvent.click(canvas.getByRole("checkbox", { name: "Papers" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Create topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith(expect.objectContaining({ exclude: "Beginner tutorials", mode: "strict", itemKinds: ["paper"] }));
+} };
+export const NestedSourceRestricted: Story = { args: { ...editorArgs(), topic: makeTopic(0, { sourceIds: [fixtureId(100)] }) }, play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  const name = canvas.getByRole("textbox", { name: "Name" });
+  await userEvent.clear(name);
+  await userEvent.type(name, "My Topic draft");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Add source" }));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "New feed");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Feed URL" }), "https://example.org/new");
+  await userEvent.click(canvas.getByRole("button", { name: "Create source" }));
+  await expect(await canvas.findByRole("heading", { name: "Edit topic" })).toBeVisible();
+  await expect(canvas.getByRole("textbox", { name: "Name" })).toHaveValue("My Topic draft");
+  await expect(canvas.getByRole("button", { name: "Choose sources" })).toHaveFocus();
+  await userEvent.click(canvas.getByRole("button", { name: "Save topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith(expect.objectContaining({ name: "My Topic draft", sourceIds: [fixtureId(100), fixtureId(120)] }));
+} };
+export const NestedSourceAll: Story = { args: editorArgs(), play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "All engineering");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Add source" }));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "New feed");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Feed URL" }), "https://example.org/new");
+  await userEvent.click(canvas.getByRole("button", { name: "Create source" }));
+  await expect(await canvas.findByRole("heading", { name: "Add topic" })).toBeVisible();
+  await expect(canvas.getByText("All sources")).toBeVisible();
+  await userEvent.click(canvas.getByRole("button", { name: "Create topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith(expect.objectContaining({ sourceIds: [] }));
+  await expect((await args.client.listSources()).some((source) => source.id === fixtureId(120))).toBe(true);
+} };
+export const NestedSourceCancel: Story = { args: editorArgs(), play: async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "My draft");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Include" }), "Sistemas de búsqueda");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Add source" }));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Discarded Source draft");
+  await userEvent.click(canvas.getByRole("button", { name: "Back" }));
+  const dialog = await canvas.findByRole("dialog", { name: "Unsaved changes" });
+  await userEvent.click(within(dialog).getByRole("button", { name: "Discard" }));
+  await expect(canvas.getByRole("textbox", { name: "Name" })).toHaveValue("My draft");
+  await expect(canvas.getByRole("textbox", { name: "Include" })).toHaveValue("Sistemas de búsqueda");
+} };
+const failedSyncClient = new FixtureScenario();
+const failedPickerArgs = editorArgs();
+const availableSources = failedPickerArgs.client.listSources;
+failedPickerArgs.client.listSources = () => Promise.reject(new Error("Source list unavailable"));
+export const SourcePickerFailure: Story = { args: failedPickerArgs, play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Keep this Topic");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await expect(await canvas.findByText("Could not load sources")).toBeVisible();
+  failedPickerArgs.client.listSources = availableSources;
+  await userEvent.click(canvas.getByRole("button", { name: "Try again" }));
+  await expect(await canvas.findByRole("checkbox", { name: "Source 1" })).toBeVisible();
+  await userEvent.click(canvas.getByRole("button", { name: "Back to topic" }));
+  await expect(canvas.getByRole("textbox", { name: "Name" })).toHaveValue("Keep this Topic");
+  await expect(args.onSave).not.toHaveBeenCalled();
+} };
+export const UnavailableSelectedSource: Story = { args: { ...editorArgs(), topic: makeTopic(0, { sourceIds: [fixtureId(999)] }) }, play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  const missing = await canvas.findByRole("checkbox", { name: "Unavailable source 1" });
+  await expect(missing).toBeChecked();
+  await userEvent.click(missing);
+  await userEvent.click(canvas.getByRole("button", { name: "Back to topic" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Save topic" }));
+  await expect(args.onSave).toHaveBeenCalledWith(expect.objectContaining({ sourceIds: [] }));
+} };
+const createFailureClient = new FixtureScenario();
+export const NestedSourceCreateFailure: Story = { args: { ...editorArgs(), client: createFailureClient, sourceActions: new SourceActions(createFailureClient) }, play: async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "My Topic draft");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Include" }), "Sistemas distribuidos");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Add source" }));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Unsaved source");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Feed URL" }), "https://example.org/new");
+  await userEvent.click(canvas.getByRole("button", { name: "Create source" }));
+  createFailureClient.sourceCreation.calls[0]?.response.reject(new Error("Creation failed"));
+  await expect(await canvas.findByText("Could not save source")).toBeVisible();
+  await userEvent.click(canvas.getByRole("button", { name: "Back" }));
+  await userEvent.click(within(await canvas.findByRole("dialog", { name: "Unsaved changes" })).getByRole("button", { name: "Discard" }));
+  await expect(canvas.getByRole("textbox", { name: "Name" })).toHaveValue("My Topic draft");
+  await expect(canvas.getByRole("textbox", { name: "Include" })).toHaveValue("Sistemas distribuidos");
+  await expect(canvas.getByRole("button", { name: "Choose sources" })).toHaveFocus();
+  await expect(createFailureClient.sourceSync.calls).toHaveLength(0);
+} };
+const longSelectionArgs = editorArgs();
+export const LongSelectionMobile: Story = { globals: { frame: "mobile" }, args: { ...longSelectionArgs, topic: makeTopic(0, { name: "Research across the full Workspace", sourceIds: Array.from({ length: 20 }, (_, index) => fixtureId(100 + index)) }) }, play: async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  await expect(canvas.getByText("+17")).toBeVisible();
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await expect(await canvas.findByRole("checkbox", { name: "Source 20" })).toBeChecked();
+  await expect(canvas.getByRole("button", { name: "Add source" })).toBeVisible();
+} };
+export const NestedSourceSyncFailed: Story = { args: { ...editorArgs(), client: failedSyncClient, sourceActions: new SourceActions(failedSyncClient) }, play: async ({ canvasElement, args }) => {
+  const canvas = within(canvasElement);
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "For later");
+  await userEvent.click(canvas.getByRole("button", { name: "Choose sources" }));
+  await userEvent.click(canvas.getByRole("button", { name: "Add source" }));
+  await userEvent.type(canvas.getByRole("textbox", { name: "Name" }), "Failed feed");
+  await userEvent.type(canvas.getByRole("textbox", { name: "Feed URL" }), "https://example.org/new");
+  await userEvent.click(canvas.getByRole("button", { name: "Create source" }));
+  failedSyncClient.sourceCreation.calls[0]?.response.resolve(makeSource(20, { name: "Failed feed" }));
+  await expect(await canvas.findByRole("heading", { name: "Add topic" })).toBeVisible();
+  failedSyncClient.sourceSync.calls[0]?.response.reject(new Error("Sync unavailable"));
+  await expect(await canvas.findByText("Could not sync source")).toBeVisible();
+  await expect(canvas.getByRole("textbox", { name: "Name" })).toHaveValue("For later");
+  await userEvent.click(canvas.getByRole("button", { name: "Retry sync for Failed feed" }));
+  await expect(failedSyncClient.sourceCreation.calls).toHaveLength(1);
+  await expect(failedSyncClient.sourceSync.calls).toHaveLength(2);
+  await expect((await args.client.listSources()).some((source) => source.id === fixtureId(120))).toBe(true);
+} };

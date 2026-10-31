@@ -18,3 +18,11 @@ Transport handlers always delegate operation availability to a service. Operatio
 Every request passes through `oapivalidator` using the OpenAPI document embedded in the generated package before it reaches a handler. Its normalized failures and generated binder errors are mapped to the public `Problem` schema. Contract-invalid input remains a `400 Bad Request`, while a missing required `If-Match` precondition remains `428 Precondition Required`, preserving the API's established behavior.
 
 The strict adapter uses an Echo JSON serializer that preserves the former controllers' unknown-field and single-value checks on the body supplied by validation. Decode failures retain operation-specific problem types, and conditional updates retain precondition-error precedence. OpenAPI validation may apply schema defaults and re-encode a body before binding; this migration preserves that existing behavior.
+
+The HTTP API uses Echo's built-in CORS middleware with one operator-managed exact-origin allowlist,
+covering product and admin routes. The default permits `app://obsidian.md`; explicitly empty
+configuration disables CORS. This shared HTTP policy replaces an SSE-only exception and enables
+browser streaming because Obsidian's CORS-independent requestUrl API buffers response bodies.
+CORS runs before OpenAPI validation so standard preflight requests are answered by the middleware.
+Credentials are disabled; optimistic-concurrency and idempotency request headers are allowed,
+and ETag is exposed. CORS is browser response-read permission, not authentication.

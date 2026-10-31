@@ -39,8 +39,9 @@ type DBPrimaryConfig struct {
 }
 
 type HTTPConfig struct {
-	Address string `env:"TOPIC_STREAM_HTTP_ADDR" default:"127.0.0.1:7331"`
-	Enabled bool   `env:"TOPIC_STREAM_HTTP_SERVER_ENABLED" default:"true"`
+	Address            string `env:"TOPIC_STREAM_HTTP_ADDR" default:"127.0.0.1:7331"`
+	CorsAllowedOrigins string `env:"TOPIC_STREAM_CORS_ALLOWED_ORIGINS" default:"app://obsidian.md"`
+	Enabled            bool   `env:"TOPIC_STREAM_HTTP_SERVER_ENABLED" default:"true"`
 }
 
 type HealthConfig struct {

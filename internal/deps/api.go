@@ -21,6 +21,7 @@ import (
 	"github.com/ethernity/obsidian-topic-stream/internal/service/sourcepoller"
 	"github.com/ethernity/obsidian-topic-stream/internal/service/topiccalibration"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 )
 
 // API owns the dependency container and independently enabled daemon roles.
@@ -38,6 +39,7 @@ type API struct {
 }
 
 type runtimeValues struct {
+	cors         echo.MiddlewareFunc
 	context      context.Context
 	version      string
 	workspaceID  uuid.UUID
@@ -208,7 +210,11 @@ func validateRuntime(ctx context.Context, cfg generated.Config, version string) 
 	if err := domain.ValidateEmbeddingModelDescriptor(bootstrapEmbeddingDescriptor(cfg.Bootstrap)); err != nil {
 		return runtimeValues{}, fmt.Errorf("bootstrap embedding configuration: %w", err)
 	}
-	return runtimeValues{context: ctx, version: version, workspaceID: workspaceID, searchPolicy: searchPolicy}, nil
+	cors, err := runtimeCORS(cfg.HTTP)
+	if err != nil {
+		return runtimeValues{}, fmt.Errorf("HTTP CORS configuration: %w", err)
+	}
+	return runtimeValues{context: ctx, version: version, workspaceID: workspaceID, searchPolicy: searchPolicy, cors: cors}, nil
 }
 
 func validateRuntimeRoles(cfg generated.Config) (uuid.UUID, error) {

@@ -899,7 +899,7 @@ func resolveRouterCore(resolver di.Resolver) (httpapi.Dependencies, error) {
 		return httpapi.Dependencies{}, err
 	}
 	return httpapi.Dependencies{
-		WorkspaceID: values.workspaceID, Status: status, Feed: feedService,
+		WorkspaceID: values.workspaceID, Status: status, Feed: feedService, CORS: values.cors,
 		Sources: sourceService, Jobs: jobService, Items: itemService,
 	}, nil
 }

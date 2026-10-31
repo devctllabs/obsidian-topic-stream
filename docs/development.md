@@ -54,6 +54,77 @@ pnpm check
 Install the output using the [Obsidian setup instructions](guides/getting-started.md#install-the-obsidian-plugin).
 For incremental builds, use `pnpm --dir plugin dev`.
 
+The plugin generates TypeScript operation/schema types from the authoritative OpenAPI document.
+After a contract edit run `pnpm --dir plugin api:generate`; `api:check` compares the generated
+bytes without editing files and runs in both plugin and contract CI. Endpoint methods remain
+handwritten over the buffered Obsidian `requestUrl` adapter. The generator and lint parser use
+TypeScript 5.9.3's compiler API; Obsidian typings target the supported minimum host version 1.8.7.
+
+Run individual gates with `pnpm --dir plugin typecheck`, `lint`, `test`, or `build`; `check`
+combines generated drift, typecheck, lint, the browser/mobile dependency build and tests.
+Production builds also typecheck and minify. Lint covers Obsidian guidelines, React Hooks, the
+configured complexity ceilings and desktop imports/globals. `test:mobile` bundles the actual
+production entry for browsers, allowing only the public Obsidian host API as an external.
+
+Production-bundle lifecycle tests use a copied disposable vault:
+
+```bash
+pnpm --dir plugin test:e2e:headless
+# Optional native desktop run with an application window:
+pnpm --dir plugin test:e2e
+```
+
+The headless runner uses Docker/Xvfb with pinned `mcr.microsoft.com/playwright:v1.64.1-noble`,
+a read-only source mount and dedicated dependency/Obsidian-cache volumes. It installs the
+lockfile in Linux and builds the plugin there. Host logs persist in `.artifacts/obsidian/logs/`;
+CI runs this same headless command and uploads those diagnostics on failure.
+Set `OBSIDIAN_APP_VERSION` (default `1.8.7`),
+`OBSIDIAN_INSTALLER_VERSION` (default `earliest`), or comma-separated `OBSIDIAN_TEST_VERSIONS`
+to select hosts. Tests use local API fixtures and never install into a personal vault. The
+host flows verify URL replacement, preference persistence, disable/re-enable cleanup, independent
+All/Topic visits, Unread retention through reading and Refresh, and a fresh visit after view reopen.
+Reader coverage uses the real host MarkdownRenderer, verifies no vault files are created, blocks
+images until consent, reuses them during the view session, blocks source-triggered code processors
+and checks explicit-only Summary generation. Digest/Task flows exercise saved editions and Build;
+Snapshot flows verify real Vault/FileManager writes, overwrite rejection, rollback, preferences
+and captured text. SSE flows cover two views, dropped/malformed advisories, REST fallback,
+pop-out migration, endpoint replacement and unload. Fixtures supply external API data; the
+optional production Echo probe supplies separate real backend CORS/streaming evidence.
+See [the plugin quality record](plugin-quality.md) for the evidence boundary and release checks.
+
+## Storybook
+
+Start the component catalog with `pnpm --dir plugin storybook` and open
+`http://127.0.0.1:6006/`. `pnpm --dir plugin build:storybook` produces the ignored static catalog;
+`pnpm --dir plugin test:storybook` runs its play/accessibility/geometry tests in headless Chromium.
+Install that browser once with `pnpm --dir plugin browser:install`; its cache stays under
+`.artifacts/playwright`. CI installs the pinned browser and runs story tests and static build.
+
+Organization follows the other Obsidian plugins: co-located `*.stories.tsx` next to components,
+`Features/<Feature>/<Role>/<Component>` for product surfaces and `Shared/<Category>/<Component>`
+for reusable components. PascalCase story names describe states such as Loaded, Loading,
+LoadError and FeedbackPending. The default toolbar selects light/dark and leaf/narrow/mobile
+frames. Shared typed fixtures, deterministic service ports, providers and host frames live in
+`plugin/src/test/storybook/`; `.storybook` contains discovery, addons, preview and the curated
+Obsidian CSS fixture. Test-only compositions are clearly labeled under Shared/Testing;
+regression-only stories stay in browser tests while hidden from normal navigation/autodocs.
+The main entry is `Features/Shell/TopicStreamShell`. It renders the production connected shell
+and currently implemented screens with in-memory service implementations. It makes no live API
+calls. Technical connection/error/geometry scenarios run in browser tests and stay hidden from
+the ordinary catalog. Each new feature extends this same composition.
+
+Feed owns optional consumer ports for Reader content, shared Item summary state and Vault saving.
+Hidden contract scenarios exercise invocation and presentation through those ports. The plugin
+and primary Shell now connect the production Reader, shared Summary and Snapshot providers;
+Storybook mocks only external backend and host ports. Feed event reconciliation consumes a
+separate advisory event port. Each ItemView injects a browser Fetch/ReadableStream adapter and
+shares one cancellable connection among feature subscribers. Pop-out migration reopens that
+stream using the new owning window without resetting navigation or cached reading state.
+Retries use bounded exponential backoff (1–30 seconds with jitter), never REST polling.
+Connected and typed events reconcile authoritative resources; they never publish Feed or
+generate summaries. See [CORS configuration](operations/configuration.md#browser-access-and-sse)
+and the [transport decision](adr/0002-contract-first-rest-with-advisory-sse.md).
+
 ## Repository map
 
 | Location | Responsibility |
@@ -221,3 +292,12 @@ collection scenario. Ensure covers missing indexes and persisted legacy incarnat
 concurrent creators, pre-limit filters and cross-Workspace isolation remain separate real-server
 oracles. Assembled HTTP/worker tests retain their transport and recovery guarantees even when a
 focused adapter or mocked unit test covers one individual operation.
+
+Snapshot coverage exercises fixed Item/Digest Markdown, safely quoted frontmatter, exact-version
+annotations, Compact/Full consent and image modes. Local attachment budgets are shared per Save;
+image downloads accept only Item descriptors, and DOMPurify uses a static SVG allowlist. The
+Obsidian adapter serializes writes per Vault and uses FileManager rollback for only newly-created
+attachments. Native headless tests create real isolated notes, parse host frontmatter, reject
+overwrite, inject note-create failure to verify rollback, retain preferences across reload and
+save a confirmed mixed historical edition. Snapshot UI and menus are part of the primary
+production-composed Shell story; only Vault/preferences and backend ports are in-memory.

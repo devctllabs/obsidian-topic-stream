@@ -47,11 +47,13 @@ operations, and engineering references.
 
 The product name is Topic Stream. Product language is calm, direct, technically credible, and free of hype. The interface should help the user operate and understand the retrieval system without presenting unsupported intelligence claims.
 
-The accepted visual direction is Signal Desk: a lightweight, precise reading workspace with
-Readwise-inspired tonal restraint, a strong typographic hierarchy, cool neutrals, and a restrained
-periwinkle-blue accent. Visual aesthetics are a core quality requirement, with equal care for
-Obsidian light and dark modes. Yellow and ochre are not brand accents. The target direction is
-recorded in [DESIGN.md](DESIGN.md); its pre-implementation seed does not claim the redesign is shipped.
+The accepted visual direction uses the user's pinned reference: black and charcoal work areas,
+matte fields, clear typography, and a soft peach accent (#F2B38A, hover #F7C5A6). Translucent,
+blurred editor panels retain the surrounding list context; secondary operations belong in real
+anchored menus. This replaces the former Signal Desk palette. Visual aesthetics are a core
+quality requirement, with equal care for Obsidian light and dark modes, keyboard use and narrow
+leaves. [DESIGN.md](DESIGN.md) records the implemented system. Later feature surfaces inherit
+this direction while retaining their own delivery status.
 
 ## Evidence on Hand
 

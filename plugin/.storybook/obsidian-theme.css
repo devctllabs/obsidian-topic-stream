@@ -1,0 +1,64 @@
+/* Curated host fixture, inspected against Obsidian API 1.8.7.
+   Sources: https://docs.obsidian.md/Reference/CSS+variables/About+styling
+   and the documented foundations/colors and foundations/typography variables.
+   Values approximate the host for isolated stories; this is not extracted application CSS. */
+.topic-stream-story-host {
+  --font-interface: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-text: var(--font-interface);
+  --font-monospace: ui-monospace, monospace;
+  --font-text-size: 16px;
+  --background-primary: #ffffff;
+  --background-secondary: #f5f6f8;
+  --background-modifier-border: #d8dce3;
+  --text-normal: #252a33;
+  --text-muted: #5b626f;
+  --text-faint: #697180;
+  --text-accent: #4c59b6;
+  --text-error: #a52929;
+  --interactive-normal: #f0f2f6;
+  --interactive-hover: #e6e9ef;
+  --interactive-accent: #5965c5;
+  --text-on-accent: #ffffff;
+  --radius-s: 4px;
+  --radius-m: 8px;
+  font-family: var(--font-interface);
+  color: var(--text-normal);
+  background: var(--background-secondary);
+}
+
+.topic-stream-story-host.theme-dark {
+  --background-primary: #1e222a;
+  --background-secondary: #181c23;
+  --background-modifier-border: #3b424f;
+  --text-normal: #edf0f5;
+  --text-muted: #b1b8c5;
+  --text-faint: #a5aebd;
+  --text-accent: #a3afff;
+  --text-error: #ff9898;
+  --interactive-normal: #303744;
+  --interactive-hover: #3a4352;
+  --interactive-accent: #a3afff;
+  --text-on-accent: #171c2b;
+}
+
+.topic-stream-story-host button,
+.topic-stream-story-host input,
+.topic-stream-story-host select,
+.topic-stream-story-host textarea {
+  font: inherit;
+}
+
+.topic-stream-story-host button {
+  min-height: 44px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+  color: var(--text-normal);
+  background: var(--interactive-normal);
+  cursor: pointer;
+}
+
+.topic-stream-story-host :focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 3px;
+}

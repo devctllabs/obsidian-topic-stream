@@ -30,6 +30,11 @@ func Load(ctx context.Context) (generated.Config, error) {
 		return generated.Config{}, fmt.Errorf("load configuration: %w", err)
 	}
 	preserveBootstrapPresence(&loaded.Bootstrap, fileValues)
+	if value, present := os.LookupEnv("TOPIC_STREAM_CORS_ALLOWED_ORIGINS"); present {
+		loaded.HTTP.CorsAllowedOrigins = value
+	} else if value, present := fileValues["TOPIC_STREAM_CORS_ALLOWED_ORIGINS"]; present {
+		loaded.HTTP.CorsAllowedOrigins = value
+	}
 	if err := loaded.Validate(); err != nil {
 		return generated.Config{}, fmt.Errorf("validate configuration: %w", err)
 	}

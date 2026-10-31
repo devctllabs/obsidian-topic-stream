@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { HttpRequest, HttpResponse } from "./transport";
 
-const { requestUrl } = vi.hoisted(() => ({ requestUrl: vi.fn() }));
+const { requestUrl } = vi.hoisted(() => ({ requestUrl: vi.fn<(options: HttpRequest & { throw: boolean }) => Promise<HttpResponse>>() }));
 vi.mock("obsidian", () => ({ requestUrl }));
 
 import { TopicStreamClient } from "./client";
 
 describe("HTTP error boundary", () => {
-  const client = new TopicStreamClient("http://localhost:7331");
+  const client = new TopicStreamClient("http://localhost:7331", (options) => requestUrl({ ...options, throw: false }));
   beforeEach(() => { requestUrl.mockReset(); });
 
   it("keeps stable codes and all field errors while showing the safe detail", async () => {

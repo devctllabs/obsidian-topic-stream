@@ -1,7 +1,8 @@
 # Getting started
 
 This guide runs the server on your computer and connects the current early Obsidian plugin to it.
-The plugin reads saved Feed history; publishing recommendations currently requires an API request.
+The plugin publishes ready recommendations on first Feed visits and explicit Refresh, then keeps
+older saved history available while you read.
 
 ## Before you start
 
@@ -92,13 +93,15 @@ Create `.obsidian/plugins/topic-stream/` inside your vault and copy these three 
 - `plugin/styles.css`
 
 In Obsidian's Community plugins settings, enable **Topic Stream**. Open its settings and keep
-**Server URL** at `http://127.0.0.1:7331`. Open the view through the ribbon icon or the
+**Server URL** at `http://127.0.0.1:7331`, or enter a different device-local address.
+**Test connection** checks the draft without applying it. **Apply** replaces the address in
+open views. The plugin requires Obsidian 1.8.7 or later. Open the view through the ribbon icon or the
 **Topic Stream: Open feed** command.
 
 ## Get your first Feed
 
-1. Create an RSS/Atom Source through the API. The current plugin's Source form sends the old
-   `kind`/`url` shape; the server requires `config`. Replace the example URL with your feed:
+1. Open the plugin’s Settings → Sources and create an RSS/Atom Source with **Add source**, or use the API's typed `config`
+   below. Replace the example URL with your feed:
 
    ```bash
    curl --fail -X POST http://127.0.0.1:7331/api/v1/sources \
@@ -109,21 +112,20 @@ In Obsidian's Community plugins settings, enable **Topic Stream**. Open its sett
    Use `"kind":"atom"` in `config` for an Atom Source.
 2. Create a Topic with a short Include description, such as “Practical distributed systems”.
    Leave the Source scope empty to consider all Sources; add Exclude criteria only when needed.
-3. Choose **Sync all now** and allow ingestion, indexing, and Topic preparation to finish.
-4. Publish eligible recommendations through the backend API:
-
-   ```bash
-   curl --fail -X POST http://127.0.0.1:7331/api/v1/feed/refresh \
-     -H 'Content-Type: application/json' \
-     --data '{}'
-   ```
-
-   This uses ready candidates without waiting for preparation. If preparation is still running,
-   wait and deliberately repeat the request; short or empty results are valid. Do not configure
-   automatic retries for this publication request.
-5. Choose **Refresh** in the plugin to read the latest saved Feed. This button only performs GET;
-   it does not publish recommendations. Load older pages, open an Item's original link, and leave
-   Like/Dislike feedback when useful. Topic correction controls are not yet available in the plugin.
+3. Plugin creation requests the first Sync separately after saving the Source. If you created it
+   through the API, use **Sync now** or **Sync all** in Settings. Allow ingestion, indexing and Topic
+   preparation to finish; a failed Sync keeps the Source and offers a deliberate retry.
+4. Return to **Feed** and choose **Refresh**. The first visit to All Topics or an enabled Topic
+   also checks for recommendations once. These requests use ready candidates without waiting for
+   preparation. Short or empty results are valid; wait and deliberately Refresh again when needed.
+   Failed requests keep saved history and do not retry publication automatically.
+5. Use the Topic switcher and **All / Unread**, load older pages, and open an Item title to read its
+   canonical Markdown in Reader. Images load only after you activate a placeholder. Its **…** menu
+   provides feedback, the original link, Reading State, Topic corrections and global Hide. Search
+   browses the all-time archive; optional **AI summary** always requires an explicit action.
+6. Open **Digests** to read saved editions or **Build** from a saved Digest Definition, including
+   Manual only ones. Use **Tasks** for background status and explicit Refresh, Cancel or eligible
+   Retry. Opening an entire edition does not mark its Items read.
 
 Continue with [Using Topic Stream](using-topic-stream.md) for the reading workflow.
 
@@ -139,3 +141,8 @@ them. Use the [backup guide](../operations/backup-and-restore.md) before intenti
 
 For another device, `localhost` refers to that device. Configure access through a trusted private
 network using the [connection guidance](../operations/configuration.md#connecting-from-another-device).
+
+Use **Save to vault** in an Item or whole-Digest menu to create an independent Markdown snapshot.
+Choose its destination and content/image modes explicitly; existing files are never replaced.
+See [Using Topic Stream](using-topic-stream.md#save-an-independent-vault-snapshot) for image limits
+and mixed Full Digest consent.
